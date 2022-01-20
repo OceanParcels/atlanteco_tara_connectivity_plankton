@@ -31,23 +31,19 @@ end_day = start_day
 
 if start_mon == 12:
     if start_year == 2018:
-        if start_day != 1:
-            raise ValueError('data unavailable for complete simulation.')
-        end_day = 31
-        end_mon = start_mon
-        end_year = start_year
-    else:
-        end_mon = 1
-        end_year = start_year + 1
+        raise ValueError('data unavailable for complete simulation.')
+    end_mon = 1
+    end_year = start_year + 1
 else:
     end_mon = start_mon + 1
     end_year = start_year
 
-data_path = '/data/oceanparcels/input_data/NEMO16_CMCC/'
+data_path = '/storage/shared/oceanparcels/input_data/NEMO16_CMCC/'
 mesh_mask = data_path + 'GLOB16L98_mesh_mask_atlantic.nc'
 
 simulation_start = datetime(start_year, start_mon, start_day, 12, 0, 0)
 simulation_end = datetime(end_year, end_mon, end_day, 12, 0, 0)
+r_depth = 100
 
 ufiles = sorted(glob(data_path + 'ROMEO.01_1d_uo_{0}{1}*_U.nc'. \
                      format(simulation_start.strftime("%Y"), simulation_start.strftime("%m"))) + \
@@ -69,10 +65,10 @@ sfiles = sorted(glob(data_path + 'ROMEO.01_1d_so_{0}{1}*_T.nc'. \
                 glob(data_path + 'ROMEO.01_1d_so_{0}{1}*_T.nc'. \
                      format(simulation_end.strftime("%Y"), simulation_end.strftime("%m"))))
 
-filenames = {'U': {'lon': mesh_mask, 'lat': mesh_mask, 'data': ufiles},
-             'V': {'lon': mesh_mask, 'lat': mesh_mask, 'data': vfiles},
-             'T': {'lon': mesh_mask, 'lat': mesh_mask, 'data': tfiles},
-             'S': {'lon': mesh_mask, 'lat': mesh_mask, 'data': sfiles}
+filenames = {'U': {'lon': mesh_mask, 'lat': mesh_mask, 'depth': ufiles[0], 'data': ufiles},
+             'V': {'lon': mesh_mask, 'lat': mesh_mask, 'depth': ufiles[0], 'data': vfiles},
+             'T': {'lon': mesh_mask, 'lat': mesh_mask, 'depth': ufiles[0], 'data': tfiles},
+             'S': {'lon': mesh_mask, 'lat': mesh_mask, 'depth': ufiles[0], 'data': sfiles}
              }
 
 variables = {'U': 'uo',
@@ -80,7 +76,7 @@ variables = {'U': 'uo',
              'T': 'thetao',
              'S': 'so'}
 
-dimensions = {'lon': 'glamf', 'lat': 'gphif', 'time': 'time_counter'}
+dimensions = {'lon': 'glamf', 'lat': 'gphif', 'depth': 'depthu', 'time': 'time_counter'}
 
 u_file = nc.Dataset(ufiles[0])
 ticks = u_file['time_counter'][:][0]
@@ -94,9 +90,9 @@ modeldata_end = datetime(1900, 1, 1) + timedelta(seconds=ticks)
 
 assert simulation_end <= modeldata_end
 
-fieldset = FieldSet.from_nemo(filenames, variables, dimensions, chunksize=False)
+fieldset = FieldSet.from_nemo(filenames, variables, dimensions, indices={'depth': [29, 30]}, chunksize=False)
 
-coords = pd.read_csv(r'/scratch/manra003/data/Nemo_H3Release_LatLon_Res5.csv')
+coords = pd.read_csv(r'/nethome/manra003/data/Nemo_H3Release_LatLon_Res5.csv')
 
 
 class Particle(JITParticle):
@@ -110,11 +106,14 @@ pset = ParticleSet.from_list(fieldset=fieldset,
                              pclass=Particle,
                              lon=coords['Longitudes'],
                              lat=coords['Latitudes'],
-                             time=simulation_start)
+                             time=simulation_start,
+                             depth=[r_depth for i in range(len(coords))])
 
 mon = simulation_start.strftime("%b")
 output_file = pset.ParticleFile(
-    name="/scratch/manra003/tara_res5_{0}/FullTara_Res5_TS_{0}{1}{2}_dt600.nc".format(start_day, mon, start_year),
+    name="/nethome/manra003/sim_out/tara{3}m/FullTara_Res5_TS_{0}{1}{2}_dt600_z{3}.nc".format(start_day, mon,
+                                                                                              start_year,
+                                                                                              r_depth),
     outputdt=timedelta((simulation_end - simulation_start).days))
 
 sample_kernel = pset.Kernel(SampleTSFields)
