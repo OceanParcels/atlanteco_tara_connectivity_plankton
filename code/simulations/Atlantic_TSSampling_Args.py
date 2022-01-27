@@ -15,7 +15,7 @@ def delete_particle(particle, fieldset, time):
 
 # verify input parameters: arg1= Year, arg2= Month, arg3=Startday
 args = sys.argv
-assert len(args) == 4
+assert len(args) == 5
 
 start_year = np.int32(args[1])
 assert 2009 <= start_year <= 2018
@@ -38,12 +38,26 @@ else:
     end_mon = start_mon + 1
     end_year = start_year
 
+# verify depth argument and assign the indices to load from the depth dimension
+r_depth = np.int32(args[4])
+if r_depth == 0:
+    min_ind, max_ind = 0, 1
+elif r_depth == 50:
+    min_ind, max_ind = 22, 23
+elif r_depth == 100:
+    min_ind, max_ind = 29, 30
+elif r_depth == 200:
+    min_ind, max_ind = 36, 37
+elif r_depth == 500:
+    min_ind, max_ind = 47, 48
+else:
+    raise ValueError('Depth indices have not been setup.')
+
 data_path = '/storage/shared/oceanparcels/input_data/NEMO16_CMCC/'
 mesh_mask = data_path + 'GLOB16L98_mesh_mask_atlantic.nc'
 
 simulation_start = datetime(start_year, start_mon, start_day, 12, 0, 0)
 simulation_end = datetime(end_year, end_mon, end_day, 12, 0, 0)
-r_depth = 100
 
 ufiles = sorted(glob(data_path + 'ROMEO.01_1d_uo_{0}{1}*_U.nc'. \
                      format(simulation_start.strftime("%Y"), simulation_start.strftime("%m"))) + \
@@ -90,7 +104,7 @@ modeldata_end = datetime(1900, 1, 1) + timedelta(seconds=ticks)
 
 assert simulation_end <= modeldata_end
 
-fieldset = FieldSet.from_nemo(filenames, variables, dimensions, indices={'depth': [29, 30]}, chunksize=False)
+fieldset = FieldSet.from_nemo(filenames, variables, dimensions, indices={'depth': [min_ind, max_ind]}, chunksize=False)
 
 coords = pd.read_csv(r'/nethome/manra003/data/Nemo_H3Release_LatLon_Res5.csv')
 
@@ -102,12 +116,17 @@ class Particle(JITParticle):
     max_sal = Variable('max_sal', initial=-999.0)
 
 
+if r_depth == 0:
+    depth_arg = None
+else:
+    depth_arg = [r_depth for i in range(len(coords))]
+
 pset = ParticleSet.from_list(fieldset=fieldset,
                              pclass=Particle,
                              lon=coords['Longitudes'],
                              lat=coords['Latitudes'],
-                             time=simulation_start,
-                             depth=[r_depth for i in range(len(coords))])
+                             depth=depth_arg,
+                             time=simulation_start)
 
 mon = simulation_start.strftime("%b")
 output_file = pset.ParticleFile(
