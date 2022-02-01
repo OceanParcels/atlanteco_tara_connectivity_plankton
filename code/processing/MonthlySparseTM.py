@@ -6,14 +6,17 @@ import pandas as pd
 from scipy.sparse import coo_matrix
 from time import time
 from sklearn.preprocessing import normalize
+import os
+import sys
 
-home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task7D/'
-export_folder = home_folder + '/'
+home_folder = '/nethome/manra003/sim_out/'
+export_folder = '/nethome/manra003/atlanteco_tara_connectivity_plankton/data/matrices/'
+
 NEW = 'new'
 DEL = 'deleted'
 SIM_PER_MONTH = 10
 hex_res = 3
-sim_depth = 100
+
 # set option to 1 for normalized TM, 2 for Sum of transitions.
 option = 1
 
@@ -80,10 +83,11 @@ def get_invalid_trajectories(ds):
     return np.unique(join_arrays)
 
 
-def compute_transition_matrix(mon, master_all_hex_t0, hex_indices, map_h3_to_mat, no_particles, no_grids):
+def compute_transition_matrix(mon, hex_indices, map_h3_to_mat, no_particles, no_grids, sim_depth):
     t_mon1 = time()
     # files = sorted(glob(home_folder + 'tara_data/FullAtlantic_2D_01{0}*_1month.nc'.format(mon)))
-    files = sorted(glob(home_folder + 'FullTara_Res5_TS_1{0}*_dt600_z{1}.nc'.format(mon, sim_depth)))
+    files = sorted(glob(home_folder + 'tara{0}m/FullTara_Res5_TS_1{1}*_dt600_z{0}.nc'.format(sim_depth, mon)))
+    assert len(files) == SIM_PER_MONTH
     trans_array = np.empty(0)
     min_temp_array = np.empty(0)
     max_temp_array = np.empty(0)
@@ -95,17 +99,18 @@ def compute_transition_matrix(mon, master_all_hex_t0, hex_indices, map_h3_to_mat
 
     for file in files:
         ds = xr.open_dataset(file)
-        assert np.all(ds['z'][:, -1].values == sim_depth)
+        assert np.all(np.round(ds['z'][:, -1].values) == sim_depth)
         assert check_default_values(ds)
-
+        
         invalid_indices = get_invalid_trajectories(ds)
         delete_count += len(invalid_indices)
-
-        # valid_indices = np.delete(np.arange(0, no_particles, 1), invalid_indices)
+        print("invalid indices count:", len(invalid_indices))
+      
 
         def get_valid_data(field_name, loc):
             return np.delete(ds[field_name][:, loc].values, invalid_indices)
 
+        
         hex_t0 = get_hex_id(get_valid_data('lon', 0), get_valid_data('lat', 0))
         # assert np.array_equal(hex_t0, master_all_hex_t0)
         hex_t1 = get_hex_id(get_valid_data('lon', -1), get_valid_data('lat', -1))
@@ -126,6 +131,9 @@ def compute_transition_matrix(mon, master_all_hex_t0, hex_indices, map_h3_to_mat
 
         # get min and max temperature data
         min_temperature, max_temperature = get_valid_data('min_temp', -1), get_valid_data('max_temp', -1)
+        print('Min/Max of Minimum Temperature: {0} / {1}'.format(np.min(min_temperature),np.max(min_temperature)))
+        print('Min/Max of Maximum Temperature: {0} / {1}'.format(np.min(max_temperature),np.max(max_temperature)))
+        
         min_temp_matrix = get_coo_matrix(min_temperature, rows, cols, no_grids)
         max_temp_matrix = get_coo_matrix(max_temperature, rows, cols, no_grids)
         min_temp_array = np.append(min_temp_array, min_temp_matrix.data)
@@ -133,11 +141,16 @@ def compute_transition_matrix(mon, master_all_hex_t0, hex_indices, map_h3_to_mat
 
         # get min and max salinity data
         min_salinity, max_salinity = get_valid_data('min_sal', -1), get_valid_data('max_sal', -1)
+        print('Min/Max of Minimum Salinity: {0} / {1}'.format(np.min(min_salinity),np.max(min_salinity)))
+        print('Min/Max of Maximum Salinity: {0} / {1}'.format(np.min(max_salinity),np.max(max_salinity)))
+        
         min_sal_matrix = get_coo_matrix(min_salinity, rows, cols, no_grids)
         max_sal_matrix = get_coo_matrix(max_salinity, rows, cols, no_grids)
         min_sal_array = np.append(min_sal_array, min_sal_matrix.data)
         max_sal_array = np.append(max_sal_array, max_sal_matrix.data)
 
+    print("Total invalid trajectories removed: ",delete_count)
+    
     # collate entries for same row and column pair
     mon_trans_matrix = get_coo_matrix(trans_array, rows_array, cols_array, no_grids).tocsr()
     print('Min/Max SUM of Transitions: {0} / {1}'.format(np.min(mon_trans_matrix.data), np.max(mon_trans_matrix.data)))
@@ -184,7 +197,7 @@ def compute_transition_matrix(mon, master_all_hex_t0, hex_indices, map_h3_to_mat
         avg_field = data / mon_trans_matrix.data
         print('Min/Max average {0} {1}: {2} / {3}'.format(f_type, field, np.min(avg_field), np.max(avg_field)))
         return avg_field
-
+    
     # Set option
     if option == 1:
         avg_min_temp_per_grid = get_avg_field_per_grid(mon_min_temp_matrix.data, 'minimum', 'temperature')
@@ -192,11 +205,11 @@ def compute_transition_matrix(mon, master_all_hex_t0, hex_indices, map_h3_to_mat
         avg_min_sal_per_grid = get_avg_field_per_grid(mon_min_sal_matrix.data, 'minimum', 'salinity')
         avg_max_sal_per_grid = get_avg_field_per_grid(mon_max_sal_matrix.data, 'maximum', 'salinity')
         # export all matrices to npz file
-        np.savez_compressed(export_folder + 'CSR_{0}.npz'.format(mon), transprob=norm_matrix.data,
+        np.savez_compressed(export_folder + 't{0}m/CSR_{1}.npz'.format(sim_depth, mon), transprob=norm_matrix.data,
                             mintemp=avg_min_temp_per_grid, maxtemp=avg_max_temp_per_grid, minsal=avg_min_sal_per_grid,
                             maxsal=avg_max_sal_per_grid, indices=norm_matrix.indices, indptr=norm_matrix.indptr)
     elif option == 2:
-        np.savez_compressed(export_folder + 'Sum_CSR_{0}.npz'.format(mon),
+        np.savez_compressed(export_folder + 't{0}m/Sum_CSR_{1}.npz'.format(sim_depth, mon),
                             transprob=mon_trans_matrix.data,
                             mintemp=mon_min_temp_matrix.data,
                             maxtemp=mon_max_temp_matrix.data,
@@ -206,22 +219,21 @@ def compute_transition_matrix(mon, master_all_hex_t0, hex_indices, map_h3_to_mat
                             indptr=mon_trans_matrix.indptr)
     else:
         raise ValueError('option value is incorrect')
-    # np.savez_compressed(export_folder + 'CSR_{0}.npz'.format(mon), transprob=norm_matrix.data,
-    #                     indices=norm_matrix.indices, indptr=norm_matrix.indptr)
+
     t_mon2 = time()
     print("analysis time: ", t_mon2 - t_mon1)
+    print("-------------------------------")
 
 
 def main():
-    # prepare a master hex list from a random file from the final dataset
-    # temp_ds = xr.open_dataset(np.random.choice(glob(home_folder + 'FullTara_Res5_TS_*'))).load()
-    # temp_ds = xr.open_dataset(home_folder + 'FullTara_Res5_TS_1Jun2016_dt600_z50.nc').load()
-    # master_all_hex_t0 = get_hex_id(temp_ds['lon'][:, 0].values, temp_ds['lat'][:, 0].values)
-    # temp_ds.close()
-    # no_particles = len(master_all_hex_t0)
-    # master_uni_hex = np.unique(master_all_hex_t0)
 
-    master_uni_hex = np.load(home_folder + 'MasterHexList.npy').tolist()
+    args = sys.argv
+    assert len(args) == 2
+    sim_depth = np.int32(args[1])
+    assert 0 <= sim_depth <= 500
+
+    master_uni_hex = np.load('/nethome/manra003/data/MasterHexList_Res3.npy').tolist()
+    assert len(master_uni_hex) == 8244
     no_particles = 377583
 
     no_grids = len(master_uni_hex)
@@ -230,9 +242,11 @@ def main():
     mat_indices = np.arange(0, len(hex_indices))
     map_h3_to_mat = pd.Series(index=hex_indices, data=mat_indices)
 
-    # months = np.array(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
-    months = np.array(['Nov'])
-    [compute_transition_matrix(mon, None, hex_indices, map_h3_to_mat, no_particles, no_grids) for mon in
+    months = np.array(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
+#     months = np.array(['Jan'])
+    output_path = export_folder + 't{0}m/'.format(sim_depth)
+    os.makedirs(output_path, exist_ok=True)
+    [compute_transition_matrix(mon, hex_indices, map_h3_to_mat, no_particles, no_grids, sim_depth) for mon in
      months]
 
 
