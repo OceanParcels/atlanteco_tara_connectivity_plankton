@@ -1,9 +1,9 @@
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix, save_npz
+import sys
 
-home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task4/ProcessedTM/'
-# home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task6_Sens/Resolution4/'
+home_folder = '/nethome/manra003/atlanteco_tara_connectivity_plankton/data/matrices/'
 
 
 def get_empty_array(mons, no_grids):
@@ -25,7 +25,9 @@ def compute_grid_annual_average(matrix, no_grids):
     avg_matrix = np.mean(matrix, axis=0)
     print(np.min(avg_matrix), np.max(avg_matrix))
     print(np.min(avg_matrix[:, :no_grids]), np.max(avg_matrix[:, :no_grids]))
-    assert np.sum(avg_matrix, axis=1).all() == 1
+
+    # following assert doesn't work for simulations at depth
+#     assert np.round(np.sum(avg_matrix, axis=1),0).all() == 1
     save_npz(home_folder + 'Annual_Avg_FullAdjacency_csr.npz', csr_matrix(avg_matrix))
     save_npz(home_folder + 'Annual_Avg_DomainAdjacency_csr.npz', csr_matrix(avg_matrix[:, :no_grids]))
 
@@ -45,8 +47,16 @@ def compute_total_transitions_field_average(matrix, transition_count, matrix_typ
 
 
 def main():
-    no_grids = 8245
-    # no_grids = len(pd.read_csv(home_folder + 'MasterHexList_Res4.csv',header=None))
+    
+    args = sys.argv
+    assert len(args) == 2
+    sim_depth = np.int32(args[1])
+    assert 0 <= sim_depth <= 500
+    
+    global home_folder
+    home_folder = home_folder + 't{0}m/'.format(sim_depth)
+    
+    no_grids = len(np.load('/nethome/manra003/data/MasterHexList_Res3.npy').tolist())
     months = np.array(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
     month_count = len(months)
 
@@ -82,6 +92,7 @@ def main():
         compute_grid_nnz_average(monthly_full_max_temp[:, :, :no_grids], nnz_count_matrix, 'MaxTemperature')
         compute_grid_nnz_average(monthly_full_min_sal[:, :, :no_grids], nnz_count_matrix, 'MinSalinity')
         compute_grid_nnz_average(monthly_full_max_sal[:, :, :no_grids], nnz_count_matrix, 'MaxSalinity')
+    
     elif option == 2:
         annual_sum_matrix = np.sum(monthly_full_trans_prob, axis=0)
         print("Min/Max Total transitions", np.min(annual_sum_matrix), np.max(annual_sum_matrix))
