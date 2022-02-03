@@ -3,7 +3,7 @@ from scipy.sparse import load_npz, save_npz, csr_matrix
 import numpy as np
 
 
-def get_base_graph(v_count, nnz_index, weights):
+def get_base_graph(v_count, nnz_index, weights, t_ratio_file=None):
     g = gt.Graph()
     g.add_vertex(v_count)
     g.add_edge_list(np.transpose(nnz_index))
@@ -14,6 +14,14 @@ def get_base_graph(v_count, nnz_index, weights):
     eprob = g.new_edge_property('double')
     eprob.a = weights
     g.ep['probability'] = eprob
+
+    if t_ratio_file:
+        time_ratio_matrix = load_npz(t_ratio_file).todense()
+        time_ratios = time_ratio_matrix[nnz_index]
+
+        t_ratio = g.new_edge_property('double')
+        t_ratio.a = time_ratios
+        g.ep['t_ratio'] = t_ratio
 
     return g
 
@@ -35,15 +43,15 @@ def add_minimum_time_ratio_property(g, time_ratio):
     return g
 
 
-def create_simple_graph(file):
+def create_simple_graph(file, t_ratio_file=None):
     adjacency_matrix = load_npz(file).todense()
     grid_count = adjacency_matrix.shape[0]
     nnz_index = adjacency_matrix.nonzero()
     weights = adjacency_matrix[nnz_index]
-    return get_base_graph(grid_count, nnz_index, weights)
+    return get_base_graph(grid_count, nnz_index, weights, t_ratio_file)
 
 
-def create_full_graph(adjacency_file, min_temp_file, max_temp_file):
+def create_full_graph(adjacency_file, min_temp_file, max_temp_file, t_ratio_file=None):
     adjacency_matrix = load_npz(adjacency_file).todense()
     grid_count = adjacency_matrix.shape[0]
     min_temp_matrix = load_npz(min_temp_file).todense()
@@ -56,12 +64,12 @@ def create_full_graph(adjacency_file, min_temp_file, max_temp_file):
     max_temp = max_temp_matrix[nnz_index]
     print(np.min(min_temp), np.max(max_temp))
 
-    g = get_base_graph(grid_count, nnz_index, weights)
+    g = get_base_graph(grid_count, nnz_index, weights, t_ratio_file)
     g = add_temperature_properties(g, min_temp, max_temp)
     return g
 
 
-def create_temp_range_graph(adjacency_file, min_temp_file, max_temp_file, temp_range):
+def create_temp_range_graph(adjacency_file, min_temp_file, max_temp_file, temp_range, t_ratio_file=None):
     adjacency_matrix = load_npz(adjacency_file).todense()
     grid_count = adjacency_matrix.shape[0]
     max_temp_matrix = load_npz(max_temp_file)
@@ -76,7 +84,7 @@ def create_temp_range_graph(adjacency_file, min_temp_file, max_temp_file, temp_r
     min_temp = min_temp_matrix.todense()[nnz_index]
     max_temp = max_temp_matrix.todense()[nnz_index]
 
-    g = get_base_graph(grid_count, nnz_index, weights)
+    g = get_base_graph(grid_count, nnz_index, weights, t_ratio_file)
     g = add_temperature_properties(g, min_temp, max_temp)
 
     # norm_min_t = g.new_edge_property('double')
@@ -86,7 +94,8 @@ def create_temp_range_graph(adjacency_file, min_temp_file, max_temp_file, temp_r
     return g
 
 
-def create_temp_min_max_graph(adjacency_file, min_temp_file, max_temp_file, min_temp_accept, max_temp_accept):
+def create_temp_min_max_graph(adjacency_file, min_temp_file, max_temp_file, min_temp_accept, max_temp_accept,
+                              t_ratio_file=None):
     adjacency_matrix = load_npz(adjacency_file).todense()
     grid_count = adjacency_matrix.shape[0]
     min_temp_matrix = load_npz(min_temp_file).todense()
@@ -104,7 +113,7 @@ def create_temp_min_max_graph(adjacency_file, min_temp_file, max_temp_file, min_
     max_temp = max_temp_matrix[nnz_index]
     print(np.min(min_temp), np.max(max_temp))
 
-    g = get_base_graph(grid_count, nnz_index, weights)
+    g = get_base_graph(grid_count, nnz_index, weights, t_ratio_file)
     g = add_temperature_properties(g, min_temp, max_temp)
     return g
 
@@ -131,16 +140,16 @@ def create_prob_filtered_graph(adjacency_file, min_temp_file, max_temp_file, pro
     return g
 
 
-def create_minimum_time_graph(adjacency_file, t_ratio_file):
-    adjacency_matrix = load_npz(adjacency_file).todense()
-    grid_count = adjacency_matrix.shape[0]
-    nnz_index = adjacency_matrix.nonzero()
-    weights = adjacency_matrix[nnz_index]
-    g = get_base_graph(grid_count, nnz_index, weights)
-    time_ratio = load_npz(t_ratio_file).todense()
-
-    g = add_minimum_time_ratio_property(g, time_ratio[nnz_index])
-    return g
+# def create_minimum_time_graph(adjacency_file, t_ratio_file):
+#     adjacency_matrix = load_npz(adjacency_file).todense()
+#     grid_count = adjacency_matrix.shape[0]
+#     nnz_index = adjacency_matrix.nonzero()
+#     weights = adjacency_matrix[nnz_index]
+#     g = get_base_graph(grid_count, nnz_index, weights)
+#     time_ratio = load_npz(t_ratio_file).todense()
+#
+#     g = add_minimum_time_ratio_property(g, time_ratio[nnz_index])
+#     return g
 
 
 def get_most_probable_path(g, s, d):
@@ -166,6 +175,7 @@ def get_path_probabilities(g, path):
         prob0 = get_prob(g, v0, v1)
         probs[i] = np.round(prob0, 4)
     print(probs)
+    return probs
 
 
 def get_shortest_path(g, s, d):
@@ -181,6 +191,17 @@ def get_shortest_path(g, s, d):
     #     except KeyError:
     #         print("Temperature not included in the graph")
     return path
+
+
+def get_probabilities_temperatures(g, s, d):
+    vlist, elist = gt.shortest_path(g, s, d)
+    path = [int(v) for v in vlist]
+
+    print(len(path))
+    print(path)
+    probs = get_path_probabilities(g, path)
+    temp_range = [(g.ep['min_t'][e], g.ep['max_t'][e]) for e in elist]
+    return probs, np.around(temp_range, 2)
 
 
 def get_shortest_paths_subset(g, s, d, path_length):
