@@ -81,7 +81,7 @@ def plot_shortest_paths_subset(x, y, c, master_hex_ids, f_paths, b_paths, s_code
     # colors = get_cmap(len(paths))
     # [plot_path(paths[i], colors(i)) for i in range(len(paths))]
     [plot_path(f_paths[i], 'blue') for i in range(len(f_paths))]
-    # [plot_path(b_paths[i], 'red') for i in range(len(b_paths))]
+    [plot_path(b_paths[i], 'red') for i in range(len(b_paths))]
     plt.show()
 
 

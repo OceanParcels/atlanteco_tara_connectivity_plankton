@@ -1,17 +1,25 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import colors
 
-home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task4/Full_connectivity_output/'
+depth1 = 0
+depth2 = 100
+species = "G_bulloides"
 
+base_path = '/Users/dmanral/Desktop/Analysis/TARA/Task7D/2011_Lombard_Species/'
+home_folder1 = base_path + 'depth{0}m/'.format(depth1)
+home_folder2 = base_path + 'depth{0}m/'.format(depth2)
+
+output_folder = base_path + 'output/'
+
+# save format
 # np.savez_compressed(home_folder + 'Stations_min-T_connectivity.npz', codes=final_stations_code, matrix=min_T_matrix)
-data = np.load(home_folder + 'Stations_min-T_connectivity_nan.npz', allow_pickle=True)
+data = np.load(home_folder1 + 'Stations_MinT_connectivity_{0}.npz'.format(species), allow_pickle=True)
 codes = data['codes']
 original_matrix = data['matrix']
 print('maximum time: ', np.nanmax(original_matrix))
-genus = "Globoturborotalita"
-species = 'rubescens'
 
-data_new = np.load(home_folder + '2021_Fabio_Species/Stations_MinT_connectivity_{0}_{1}.npz'.format(genus, species),
+data_new = np.load(home_folder2 + 'Stations_MinT_connectivity_{0}.npz'.format(species),
                    allow_pickle=True)
 # data_new = np.load(home_folder + 'Stations_min-T_connectivity_nan_TR2deg.npz', allow_pickle=True)
 
@@ -23,29 +31,35 @@ print('maximum time: ', np.nanmax(new_matrix))
 assert np.array_equal(codes, new_codes)
 
 # compute fraction
-fraction = (new_matrix - original_matrix) / original_matrix
+fraction = (new_matrix - original_matrix) / original_matrix * 100
+# fraction = new_matrix - original_matrix
+
 avg = np.nanmean(fraction)
-print(avg)
+min_fraction, max_fraction = np.nanmin(fraction), np.nanmax(fraction)
+print(min_fraction, max_fraction, avg)
 
 # Source: https://matplotlib.org/stable/gallery/images_contours_and_fields/image_annotated_heatmap.html#sphx-glr-gallery-images-contours-and-fields-image-annotated-heatmap-py
 # fig = plt.figure()
 fig = plt.figure(figsize=(16, 14), dpi=100)
 plt.margins(0, 0)
 ax = plt.gca()
-ax.set_title("Average fractional change: {0}%".format(np.round(avg * 100, 2)), pad=30)
-plt.suptitle("Fractional change in Connectivity Time between all stations (Passive vs {0}. {1})".format(genus, species))
+ax.set_title("Fractional change = (z{0} - z{1}) / z{1} * 100 | Average: {2}%".format(depth2, depth1, np.round(avg, 2)),
+             pad=70)
+plt.suptitle(
+    "Fractional change in minimum connectivity time between all stations ({0}m vs {1}m depth)".format(depth1, depth2))
 ax.set_xlabel("Destination")
 ax.set_ylabel("Source", labelpad=20)
 ax.set_xticks(np.arange(len(codes)))
 ax.set_yticks(np.arange(len(codes)))
-ax.set_xticklabels(codes)
-ax.set_yticklabels(codes)
-plt.tick_params(axis='both', which='major', labelsize=7)
+ax.set_xticklabels(np.arange(1, len(codes) + 1))
+ax.set_yticklabels(np.arange(1, len(codes) + 1))
+# ax.set_xticklabels(codes)
+# ax.set_yticklabels(codes)
+plt.tick_params(axis='both', which='major', labelsize=12)
 
 # Y axis labels on top
 ax.tick_params(top=True, bottom=False, labeltop=True, labelbottom=False)
-plt.xticks(rotation=90)
-# plt.setp(ax.get_xticklabels(), rotation=-30, ha="right", rotation_mode="anchor")
+plt.xticks(rotation=0)
 
 # Turn spines off and create white grid.
 ax.spines[:].set_visible(False)
@@ -54,9 +68,12 @@ ax.set_yticks(np.arange(len(codes) + 1) - .5, minor=True)
 ax.grid(which="minor", color="w", linestyle='-', linewidth=1)
 ax.tick_params(which="minor", bottom=False, left=False)
 
-plt.imshow(fraction * 100, cmap=plt.cm.cool)
+divnorm = colors.TwoSlopeNorm(vmin=min_fraction, vcenter=0., vmax=max_fraction)
+plt.imshow(fraction, cmap=plt.cm.coolwarm, norm=divnorm)
+
 cbar = plt.colorbar(orientation='vertical')
-# plt.clim(0, 3.5)
+
 cbar.set_label('Fractional change (%)')
-plt.show()
-# plt.savefig(home_folder + "2021_Fabio_Species/Plots/Fraction_{0}_{1}.pdf".format(genus, species), bbox_inches='tight', pad_inches=0.2)
+# plt.show()
+plt.savefig(output_folder + "FractionalChange_z{0}m_vs_z{1}m_{2}.pdf".format(depth1, depth2,species), bbox_inches='tight',
+            pad_inches=0.2)
