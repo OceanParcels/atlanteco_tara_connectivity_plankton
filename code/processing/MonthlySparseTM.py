@@ -1,3 +1,8 @@
+"""
+To compute the monthly averaged transition matrix from all the 120 simulations- 
+10 simulations for each month
+using MasterHexList_Res3 for mapping
+"""
 import xarray as xr
 import h3
 from glob import glob
@@ -15,15 +20,16 @@ export_folder = '/nethome/manra003/atlanteco_tara_connectivity_plankton/data/mat
 NEW = 'new'
 DEL = 'deleted'
 SIM_PER_MONTH = 10
-hex_res = 3
+parent_res = 3
+child_res = 5
 
 # set option to 1 for normalized TM, 2 for Sum of transitions.
 option = 1
 
 
-def get_hex_id(lons, lats):
-    return np.array([h3.geo_to_h3(y, x, hex_res) for x, y in zip(lons, lats)])
-
+def get_hexid(lons, lats):
+    child_hex = np.array([h3.geo_to_h3(y, x, child_res) for x, y in zip(lons, lats)])
+    return np.array([h3.h3_to_parent(str(h), parent_res) for h in child_hex])
 
 def get_coo_matrix(array, rows, cols, no_grids):
     matrix = coo_matrix((array, (rows, cols)), shape=(no_grids, no_grids + 2))
@@ -111,9 +117,9 @@ def compute_transition_matrix(mon, hex_indices, map_h3_to_mat, no_particles, no_
             return np.delete(ds[field_name][:, loc].values, invalid_indices)
 
         
-        hex_t0 = get_hex_id(get_valid_data('lon', 0), get_valid_data('lat', 0))
+        hex_t0 = get_hexid(get_valid_data('lon', 0), get_valid_data('lat', 0))
         # assert np.array_equal(hex_t0, master_all_hex_t0)
-        hex_t1 = get_hex_id(get_valid_data('lon', -1), get_valid_data('lat', -1))
+        hex_t1 = get_hexid(get_valid_data('lon', -1), get_valid_data('lat', -1))
 
         # mask hex ids that are new
         hex_t1_new = np.where(np.isin(hex_t1, hex_indices), hex_t1, NEW)
@@ -233,9 +239,11 @@ def main():
     assert 0 <= sim_depth <= 500
 
     master_uni_hex = np.load('/nethome/manra003/data/MasterHexList_Res3.npy').tolist()
-    assert len(master_uni_hex) == 8244
-    no_particles = 377583
-
+    assert len(master_uni_hex) == 8243
+    
+    no_particles = len(np.load('/nethome/manra003/data/AllRes5Children.npy'))
+    assert no_particles == 377583
+    
     no_grids = len(master_uni_hex)
 
     hex_indices = np.append(master_uni_hex, (NEW, DEL))
