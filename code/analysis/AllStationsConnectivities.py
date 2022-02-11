@@ -1,14 +1,11 @@
 import pandas as pd
-import h3
 import numpy as np
-import xarray as xr
-from glob import glob
-import adjacency_graph as ag
-import connectivity_helper as ch
+from code import adjacencygraph as ag
+from code import connectivityhelper as ch
 
 # home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task6_Sens/Resolution2/'
 home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task4/'
-data_folder = home_folder+'Full_connectivity_output/2005Zaric/'
+data_folder = home_folder + 'Full_connectivity_output/2005Zaric/'
 
 hex_res = 3
 
