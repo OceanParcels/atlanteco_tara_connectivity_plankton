@@ -24,7 +24,7 @@ dependencies:
   - expat=2.4.3
   - font-ttf-dejavu-sans-mono=2.37
   - font-ttf-inconsolata=3.000
-  - font-ttf-source-code-pro=2.038
+  - font-ttf-source-sourcecode-pro=2.038
   - font-ttf-ubuntu=0.83
   - fontconfig=2.13.94
   - fonts-conda-ecosystem=1

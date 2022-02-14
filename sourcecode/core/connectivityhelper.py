@@ -8,7 +8,7 @@ def get_station_hexid(stations, code, hex_res):
         lat, lon = stations.loc[code]['Latitude'], stations.loc[code]['Longitude']
         return h3.geo_to_h3(lat, lon, hex_res)
     except KeyError:
-        print("Incorrect source/destination code provided. Recheck values")
+        print("Incorrect source/destination sourcecode provided. Recheck values")
         raise
 
 
