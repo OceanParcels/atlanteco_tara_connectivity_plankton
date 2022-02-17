@@ -1,3 +1,8 @@
+"""Found discrepancy when mapping points to the resolution 3 hex id on remote linux server and local mac-os.
+Three points didn't match. Here I try to check that
+Diagnosis- problem due to Floating Point Error
+Solution-use h3_to_parent method (Details at https://github.com/uber/h3-py/issues/208)"""
+
 import h3
 import xarray as xr
 import matplotlib.pyplot as plt

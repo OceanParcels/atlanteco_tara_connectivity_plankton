@@ -12,6 +12,7 @@ from sourcecode.visulizations import connectivityplots as cp
 
 hex_res = 3
 data_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task7D/'
+depth = 100
 
 
 def single_min_T_path(atlantic_graph, mask_lons, mask_lats, mask_value, master_grids_list, s_index, source_code,
@@ -47,11 +48,11 @@ def subset_min_T_paths(atlantic_graph, mask_lons, mask_lats, mask_value, master_
 def main():
     source_code = '66SUR'
     destination_code = 'OA002'
-    domain_adjacency_file = 't500m/Annual_Avg_DomainAdjacency_csr.npz'
+    domain_adjacency_file = 't{0}m/Annual_Avg_DomainAdjacency_csr.npz'.format(depth)
 
     temp_constraint_range = np.NaN
-    min_accept_temp = np.NaN
-    max_accept_temp = np.NaN
+    min_accept_temp = 11.85
+    max_accept_temp = 28.85
     minimum_time_omalley2021 = False
 
     if minimum_time_omalley2021:
@@ -72,15 +73,15 @@ def main():
     # graph where the min-max 'temperature range' b/w grids is restricted
     if ~np.isnan(temp_constraint_range):
         atlantic_graph = ag.create_temp_range_graph(data_folder + domain_adjacency_file,
-                                                    data_folder + 't0m/Annual_Avg_MinTemperature_csr.npz',
-                                                    data_folder + 't0m/Annual_Avg_MaxTemperature_csr.npz',
+                                                    data_folder + 't{0}m/Annual_Avg_MinTemperature_csr.npz'.format(depth),
+                                                    data_folder + 't{0}m/Annual_Avg_MaxTemperature_csr.npz'.format(depth),
                                                     temp_constraint_range, t_ratio_file)
     # graph where connections with min and max temperature values are within the min-max values provided by the user
     # (eg. a thermal range for a species)
     elif ~np.isnan(max_accept_temp) and ~np.isnan(min_accept_temp):
         atlantic_graph = ag.create_temp_min_max_graph(data_folder + domain_adjacency_file,
-                                                      data_folder + 't0m/Annual_Avg_MinTemperature_csr.npz',
-                                                      data_folder + 't0m/Annual_Avg_MaxTemperature_csr.npz',
+                                                      data_folder + 't{0}m/Annual_Avg_MinTemperature_csr.npz'.format(depth),
+                                                      data_folder + 't{0}m/Annual_Avg_MaxTemperature_csr.npz'.format(depth),
                                                       min_accept_temp, max_accept_temp, t_ratio_file)
     # simple graph, without any temperature boundaries
     else:
