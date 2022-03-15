@@ -32,15 +32,8 @@ def single_min_T_path(atlantic_graph, mask_lons, mask_lats, mask_value, master_g
 
 def subset_min_T_paths(atlantic_graph, mask_lons, mask_lats, mask_value, master_grids_list, s_index, source_code,
                        d_index, destination_code):
-    path_to_compute = 'Shortest_Paths'
-    forward_path = ag.get_shortest_path(atlantic_graph, s_index, d_index)
-    forward_paths = ag.get_shortest_paths_subset(atlantic_graph, s_index, d_index, len(forward_path))
-    # forward_paths = ag.get_all_shortest_paths(atlantic_graph, s_index, d_index, len(forward_path))
-    # for p in forward_paths:
-    #     ag.get_time_from_most_probable_path(atlantic_graph, p)
-    backward_path = ag.get_shortest_path(atlantic_graph, d_index, s_index)
-    backward_paths = ag.get_shortest_paths_subset(atlantic_graph, d_index, s_index, len(backward_path))
-    # backward_paths = ag.get_all_shortest_paths(atlantic_graph, d_index, s_index, len(backward_path))
+    forward_paths = ag.get_shortest_paths_subset(atlantic_graph, s_index, d_index)
+    backward_paths = ag.get_shortest_paths_subset(atlantic_graph, d_index, s_index)
     cp.plot_shortest_paths_subset(mask_lons, mask_lats, mask_value, master_grids_list, forward_paths, backward_paths,
                                   source_code, destination_code)
 
@@ -73,15 +66,19 @@ def main():
     # graph where the min-max 'temperature range' b/w grids is restricted
     if ~np.isnan(temp_constraint_range):
         atlantic_graph = ag.create_temp_range_graph(data_folder + domain_adjacency_file,
-                                                    data_folder + 't{0}m/Annual_Avg_MinTemperature_csr.npz'.format(depth),
-                                                    data_folder + 't{0}m/Annual_Avg_MaxTemperature_csr.npz'.format(depth),
+                                                    data_folder + 't{0}m/Annual_Avg_MinTemperature_csr.npz'.format(
+                                                        depth),
+                                                    data_folder + 't{0}m/Annual_Avg_MaxTemperature_csr.npz'.format(
+                                                        depth),
                                                     temp_constraint_range, t_ratio_file)
     # graph where connections with min and max temperature values are within the min-max values provided by the user
     # (eg. a thermal range for a species)
     elif ~np.isnan(max_accept_temp) and ~np.isnan(min_accept_temp):
         atlantic_graph = ag.create_temp_min_max_graph(data_folder + domain_adjacency_file,
-                                                      data_folder + 't{0}m/Annual_Avg_MinTemperature_csr.npz'.format(depth),
-                                                      data_folder + 't{0}m/Annual_Avg_MaxTemperature_csr.npz'.format(depth),
+                                                      data_folder + 't{0}m/Annual_Avg_MinTemperature_csr.npz'.format(
+                                                          depth),
+                                                      data_folder + 't{0}m/Annual_Avg_MaxTemperature_csr.npz'.format(
+                                                          depth),
                                                       min_accept_temp, max_accept_temp, t_ratio_file)
     # simple graph, without any temperature boundaries
     else:

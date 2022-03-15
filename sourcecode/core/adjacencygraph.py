@@ -204,28 +204,28 @@ def get_probabilities_temperatures(g, s, d):
     return probs, np.around(temp_range, 2)
 
 
-def get_shortest_paths_subset(g, s, d, path_length):
+def get_shortest_paths_subset(g, s, d):
     cnt = gt.count_shortest_paths(g, s, d)
-    print('Total paths: ', cnt)
-    if cnt > 100:
+    if cnt == 1:
+        path = gt.random_shortest_path(g, s, d)
+        return np.array([path])
+    elif cnt > 100:
         count = 100
     else:
         count = cnt
-    paths = np.empty((count, path_length), dtype=np.int32)
-    for i in range(count):
-        paths[i] = gt.random_shortest_path(g, s, d)
-    print('paths computed. Count: ', count)
-    return paths
+    paths = gt.random_shortest_path(g, s, d, nsamples=count)
+    # print('paths computed. Count: ', count)
+    return np.array(paths, dtype=int)
 
 
-def get_all_shortest_paths(g, s, d, path_length):
-    count = gt.count_shortest_paths(g, s, d)
-    print('Total paths: ', count)
-    paths = gt.all_shortest_paths(g, s, d)
-    all_paths = np.empty((count, path_length), dtype=np.int32)
-    for i, p in zip(range(count), paths):
-        all_paths[i] = [int(v) for v in p]
-    return all_paths
+# def get_all_shortest_paths(g, s, d, path_length):
+#     count = gt.count_shortest_paths(g, s, d)
+#     print('Total paths: ', count)
+#     paths = gt.all_shortest_paths(g, s, d)
+#     all_paths = np.empty((count, path_length), dtype=np.int32)
+#     for i, p in zip(range(count), paths):
+#         all_paths[i] = [int(v) for v in p]
+#     return all_paths
 
 
 def get_prob(g, s, d):
