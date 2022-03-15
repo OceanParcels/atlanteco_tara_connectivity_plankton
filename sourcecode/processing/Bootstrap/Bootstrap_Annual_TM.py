@@ -2,11 +2,9 @@ import numpy as np
 from scipy.sparse import csr_matrix, save_npz
 import os
 
-# data_folder = '/nethome/manra003/data/'
-# home_folder = '/nethome/manra003/atlanteco_tara_connectivity_plankton/data/matrices/'
+data_folder = '/nethome/manra003/data/'
+home_folder = '/nethome/manra003/atlanteco_tara_connectivity_plankton/data/matrices/'
 
-data_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task7D/'
-home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task6_Sens/'
 depth = 0
 
 
@@ -19,13 +17,6 @@ def get_dense_matrix(matrix_data, indices, indptr, no_grids):
 
 
 def compute_grid_annual_average(matrix, no_grids, path):
-    # sum_matrix = np.sum(matrix, axis=0)
-    # avg_matrix = sum_matrix / nnz_count_matrix
-    # print(np.min(avg_matrix), np.max(avg_matrix))
-    # print(np.min(avg_matrix[:, :no_grids]), np.max(avg_matrix[:, :no_grids]))
-    # save_npz(home_folder + 'Annual_Avg_FullAdjacency_csr.npz', csr_matrix(avg_matrix))
-    # save_npz(home_folder + 'Annual_Avg_DomainAdjacency_csr.npz', csr_matrix(avg_matrix[:, :no_grids]))
-
     avg_matrix = np.mean(matrix, axis=2)
     print(np.min(avg_matrix), np.max(avg_matrix))
     print(np.min(avg_matrix[:, :no_grids]), np.max(avg_matrix[:, :no_grids]))
@@ -46,8 +37,7 @@ def main():
     master_uni_hex = np.load(data_folder + 'MasterHexList_Res3.npy').tolist()
     assert len(master_uni_hex) == 8243
     no_grids = len(master_uni_hex)
-    # months = np.array(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
-    months = np.array(['Jan', 'Feb'])
+    months = np.array(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
 
     month_count = len(months)
 
