@@ -2,9 +2,9 @@ import xarray as xr
 from glob import glob
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import normalize
+from scipy.sparse import csr_matrix
 from sklearn.utils import resample
-import sourcecode.core.matrixhelper as mxh
+import matrixhelper as mxh
 import os
 from time import time
 
@@ -19,7 +19,7 @@ parent_res = 3
 sim_depth = 0
 
 
-def get_all_matrices_for_month(mon, hex_indices, map_h3_to_mat, no_grids, sim_depth, sample_set):
+def get_all_matrices_for_month(mon, hex_indices, map_h3_to_mat, no_grids, sim_depth, sample_set, path_dir):
     tf1 = time()
     files = sorted(glob(home_folder + 'tara{0}m/FullTara_Res5_TS_1{1}*_dt600_z{0}.nc'.format(sim_depth, mon)))
     assert len(files) == SIM_PER_MONTH
@@ -37,9 +37,9 @@ def get_all_matrices_for_month(mon, hex_indices, map_h3_to_mat, no_grids, sim_de
         assert np.all(np.round(ds['z'][:, -1].values) == sim_depth)
         assert mxh.check_default_values(ds)
 
-        invalid_indices = mxh.get_invalid_trajectories(ds)
-        delete_count += len(invalid_indices)
-        print("invalid indices count:", len(invalid_indices))
+#         invalid_indices = mxh.get_invalid_trajectories(ds)
+#         delete_count += len(invalid_indices)
+#         print("invalid indices count:", len(invalid_indices))
 
         t0 = mxh.get_hexid_from_parent(ds['lon'][:, 0].values, ds['lat'][:, 0].values, child_res,
                                        parent_res)
@@ -125,25 +125,37 @@ def get_all_matrices_for_month(mon, hex_indices, map_h3_to_mat, no_grids, sim_de
     # print("-------------------------------\nMonth: %s- \nTotalNumber of particles: %d" % (mon, mon_trans_matrix.sum()))
     assert mon_trans_matrix.sum() == len(sample_set) * SIM_PER_MONTH
 
-    # perform row normalization for transitions and confirm order
-    norm_matrix = normalize(mon_trans_matrix, 'l1', axis=1, copy=True)
-    assert np.array_equal(norm_matrix.indptr, mon_min_temp_matrix.indptr)
-    assert np.array_equal(norm_matrix.indices, mon_max_sal_matrix.indices)
+    # create binary matrix from transitional data and confirm order
+    bin_matrix = csr_matrix((np.ones(len(mon_trans_matrix.data)), mon_trans_matrix.indices, mon_trans_matrix.indptr),
+                            shape=mon_trans_matrix.shape)
+    assert np.array_equal(bin_matrix.indptr, mon_min_temp_matrix.indptr)
+    assert np.array_equal(bin_matrix.indices, mon_max_sal_matrix.indices)
 
-    np.savez_compressed(export_folder + 'Sum_CSR_{0}.npz'.format(mon),
-                        transprob=mon_trans_matrix.data,
-                        mintemp=mon_min_temp_matrix.data,
-                        maxtemp=mon_max_temp_matrix.data,
-                        minsal=mon_min_sal_matrix.data,
-                        maxsal=mon_max_sal_matrix.data,
-                        indices=mon_trans_matrix.indices,
-                        indptr=mon_trans_matrix.indptr)
+    def get_avg_field_per_grid(data, f_type, field):
+        avg_field = data / mon_trans_matrix.data
+        # print('Min/Max average {0} {1}: {2} / {3}'.format(f_type, field, np.min(avg_field), np.max(avg_field)))
+        return avg_field
+    
+    avg_min_temp_per_grid = get_avg_field_per_grid(mon_min_temp_matrix.data, 'minimum', 'temperature')
+    avg_max_temp_per_grid = get_avg_field_per_grid(mon_max_temp_matrix.data, 'maximum', 'temperature')
+    avg_min_sal_per_grid = get_avg_field_per_grid(mon_min_sal_matrix.data, 'minimum', 'salinity')
+    avg_max_sal_per_grid = get_avg_field_per_grid(mon_max_sal_matrix.data, 'maximum', 'salinity')
+    # export all matrices to npz file
+    np.savez_compressed(path_dir + 'Bin_CSR_{0}_z{1}.npz'.format(mon, sim_depth),
+                        transprob=bin_matrix.data,
+                        mintemp=avg_min_temp_per_grid, 
+                        maxtemp=avg_max_temp_per_grid, 
+                        minsal=avg_min_sal_per_grid,
+                        maxsal=avg_max_sal_per_grid, 
+                        indices=bin_matrix.indices, 
+                        indptr=bin_matrix.indptr)
+    
     tf2 = time()
     print(mon, ":", tf2 - tf1)
 
 
 def main():
-    master_uni_hex = np.load(home_folder + 'MasterHexList.npy').tolist()
+    master_uni_hex = np.load(data_folder + 'MasterHexList_Res3.npy').tolist()
     assert len(master_uni_hex) == 8243
     no_grids = len(master_uni_hex)
 
@@ -156,7 +168,8 @@ def main():
 
     months = np.array(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
 
-    sample_size = [10000, 50000, 100000, 200000, 300000]
+    sample_size = [5000, 10000, 50000, 100000, 200000, 300000]
+    
     for size in sample_size:
         t1 = time()
         # test with less number of particles without replacement
@@ -166,9 +179,9 @@ def main():
 
         os.makedirs(path_dir, exist_ok=True)
         [get_all_matrices_for_month(mon, hex_indices, map_h3_to_mat, no_grids, sim_depth,
-                                    sample_set) for mon in months]
+                                    sample_set, path_dir) for mon in months]
         t2 = time()
-        print('Smaple size {0} completed in time: {1}'.format(size, t2 - t1))
+        print('Sample size {0} completed in time: {1}'.format(size, t2 - t1))
 
 
 if __name__ == '__main__':
