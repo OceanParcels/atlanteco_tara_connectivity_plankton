@@ -1,6 +1,18 @@
 import numpy as np
 import h3
-from scipy.sparse import coo_matrix
+from scipy.sparse import coo_matrix, csr_matrix
+
+NEW = 'new'
+DEL = 'deleted'
+
+
+def main_hex_list(m_hex):
+    """
+    hex list needed to process the mapping of the transitions.
+    :param hex:
+    :return:
+    """
+    return np.append(m_hex, (NEW, DEL))
 
 
 def get_hexid_from_parent(lons, lats, child_res, parent_res):
@@ -64,3 +76,67 @@ def get_invalid_trajectories(ds):
 
     join_arrays = np.concatenate((minsalonly, mintemponly, maxtemponly, static_pts_index))
     return np.unique(join_arrays)
+
+
+def get_monthly_tm(ds, invalid_indices, trans_array, rows_array, cols_array, min_temp_array, max_temp_array,
+                   min_sal_array, max_sal_array, no_grids, parent_res, child_res, hex_indices, map_h3_to_mat
+                   ):
+    def get_valid_data(field_name, loc):
+        return np.delete(ds[field_name][:, loc].values, invalid_indices)
+
+    hex_t0 = get_hexid_from_parent(get_valid_data('lon', 0), get_valid_data('lat', 0), child_res,
+                                   parent_res)
+    # assert np.array_equal(hex_t0, master_all_hex_t0)
+    hex_t1 = get_hexid_from_parent(get_valid_data('lon', -1), get_valid_data('lat', -1), child_res,
+                                   parent_res)
+
+    # mask hex ids that are new
+    hex_t1_new = np.where(np.isin(hex_t1, hex_indices), hex_t1, NEW)
+    # mask hex ids in hex_t1_new that were deleted during the simulation
+    hex_t1_new = np.where(get_valid_data('time', -1) < np.max(ds['time'][:, -1].values), DEL, hex_t1_new)
+
+    rows = map_h3_to_mat[hex_t0].values
+    cols = map_h3_to_mat[hex_t1_new].values
+    transitions = np.ones((len(hex_t0)))
+
+    t_matrix = get_coo_matrix(transitions, rows, cols, no_grids)
+    trans_array = np.append(trans_array, t_matrix.data)
+    rows_array = np.append(rows_array, t_matrix.row)
+    cols_array = np.append(cols_array, t_matrix.col)
+
+    # get min and max temperature data
+    min_temperature, max_temperature = get_valid_data('min_temp', -1), get_valid_data('max_temp', -1)
+    print('Min/Max of Minimum Temperature: {0} / {1}'.format(np.min(min_temperature), np.max(min_temperature)))
+    print('Min/Max of Maximum Temperature: {0} / {1}'.format(np.min(max_temperature), np.max(max_temperature)))
+
+    min_temp_matrix = get_coo_matrix(min_temperature, rows, cols, no_grids)
+    max_temp_matrix = get_coo_matrix(max_temperature, rows, cols, no_grids)
+    min_temp_array = np.append(min_temp_array, min_temp_matrix.data)
+    max_temp_array = np.append(max_temp_array, max_temp_matrix.data)
+
+    # get min and max salinity data
+    min_salinity, max_salinity = get_valid_data('min_sal', -1), get_valid_data('max_sal', -1)
+    print('Min/Max of Minimum Salinity: {0} / {1}'.format(np.min(min_salinity), np.max(min_salinity)))
+    print('Min/Max of Maximum Salinity: {0} / {1}'.format(np.min(max_salinity), np.max(max_salinity)))
+
+    min_sal_matrix = get_coo_matrix(min_salinity, rows, cols, no_grids)
+    max_sal_matrix = get_coo_matrix(max_salinity, rows, cols, no_grids)
+    min_sal_array = np.append(min_sal_array, min_sal_matrix.data)
+    max_sal_array = np.append(max_sal_array, max_sal_matrix.data)
+
+    return trans_array, rows_array, cols_array, min_temp_array, max_temp_array, min_sal_array, max_sal_array
+
+
+def binary_matrix(matrix):
+    """
+    get binary matrix : replacing all exisitng connections with 1
+    :param matrix:
+    :return:
+    """
+    return csr_matrix((np.ones(len(matrix.data)), matrix.indices, matrix.indptr),
+                      shape=matrix.shape)
+
+
+def avg_field_per_grid(f_data, t_data):
+    avg_field = f_data / t_data
+    return avg_field

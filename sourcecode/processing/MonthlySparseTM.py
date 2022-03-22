@@ -14,19 +14,18 @@ import os
 import sys
 
 home_folder = '/nethome/manra003/sim_out/'
-export_folder = '/nethome/manra003/atlanteco_tara_connectivity_plankton/data/matrices/'
+data_folder = '/nethome/manra003/data/'
+export_folder = '/nethome/storage/shared/oceanparcels/output_data/data_Darshika/TaraC/'
 
-NEW = 'new'
-DEL = 'deleted'
 SIM_PER_MONTH = 10
 parent_res = 3
 child_res = 5
 
-# set option to 1 for normalized TM, 2 for Sum of transitions.
+# set option to 1 for normalized/binary TM, 2 for Sum of transitions.
 option = 1
 
 
-def compute_transition_matrix(mon, hex_indices, map_h3_to_mat, no_particles, no_grids, sim_depth):
+def compute_transition_matrix(mon, hex_indices, map_h3_to_mat, no_particles, no_grids, sim_depth, output_path):
     t_mon1 = time()
     # files = sorted(glob(home_folder + 'tara_data/FullAtlantic_2D_01{0}*_1month.nc'.format(mon)))
     files = sorted(glob(home_folder + 'tara{0}m/FullTara_Res5_TS_1{1}*_dt600_z{0}.nc'.format(sim_depth, mon)))
@@ -49,48 +48,9 @@ def compute_transition_matrix(mon, hex_indices, map_h3_to_mat, no_particles, no_
         delete_count += len(invalid_indices)
         print("invalid indices count:", len(invalid_indices))
 
-        def get_valid_data(field_name, loc):
-            return np.delete(ds[field_name][:, loc].values, invalid_indices)
-
-        hex_t0 = mxh.get_hexid_from_parent(get_valid_data('lon', 0), get_valid_data('lat', 0), child_res,
-                                                    parent_res)
-        # assert np.array_equal(hex_t0, master_all_hex_t0)
-        hex_t1 = mxh.get_hexid_from_parent(get_valid_data('lon', -1), get_valid_data('lat', -1), child_res,
-                                                    parent_res)
-
-        # mask hex ids that are new
-        hex_t1_new = np.where(np.isin(hex_t1, hex_indices), hex_t1, NEW)
-        # mask hex ids in hex_t1_new that were deleted during the simulation
-        hex_t1_new = np.where(get_valid_data('time', -1) < np.max(ds['time'][:, -1].values), DEL, hex_t1_new)
-
-        rows = map_h3_to_mat[hex_t0].values
-        cols = map_h3_to_mat[hex_t1_new].values
-        transitions = np.ones((len(hex_t0)))
-
-        t_matrix = mxh.get_coo_matrix(transitions, rows, cols, no_grids)
-        trans_array = np.append(trans_array, t_matrix.data)
-        rows_array = np.append(rows_array, t_matrix.row)
-        cols_array = np.append(cols_array, t_matrix.col)
-
-        # get min and max temperature data
-        min_temperature, max_temperature = get_valid_data('min_temp', -1), get_valid_data('max_temp', -1)
-        print('Min/Max of Minimum Temperature: {0} / {1}'.format(np.min(min_temperature), np.max(min_temperature)))
-        print('Min/Max of Maximum Temperature: {0} / {1}'.format(np.min(max_temperature), np.max(max_temperature)))
-
-        min_temp_matrix = mxh.get_coo_matrix(min_temperature, rows, cols, no_grids)
-        max_temp_matrix = mxh.get_coo_matrix(max_temperature, rows, cols, no_grids)
-        min_temp_array = np.append(min_temp_array, min_temp_matrix.data)
-        max_temp_array = np.append(max_temp_array, max_temp_matrix.data)
-
-        # get min and max salinity data
-        min_salinity, max_salinity = get_valid_data('min_sal', -1), get_valid_data('max_sal', -1)
-        print('Min/Max of Minimum Salinity: {0} / {1}'.format(np.min(min_salinity), np.max(min_salinity)))
-        print('Min/Max of Maximum Salinity: {0} / {1}'.format(np.min(max_salinity), np.max(max_salinity)))
-
-        min_sal_matrix = mxh.get_coo_matrix(min_salinity, rows, cols, no_grids)
-        max_sal_matrix = mxh.get_coo_matrix(max_salinity, rows, cols, no_grids)
-        min_sal_array = np.append(min_sal_array, min_sal_matrix.data)
-        max_sal_array = np.append(max_sal_array, max_sal_matrix.data)
+        trans_array, rows_array, cols_array, min_temp_array, max_temp_array, min_sal_array, max_sal_array = mxh.get_monthly_tm(
+            ds, invalid_indices, trans_array, rows_array, cols_array, min_temp_array, max_temp_array,
+            min_sal_array, max_sal_array, no_grids, parent_res, child_res, hex_indices, map_h3_to_mat)
 
     print("Total invalid trajectories removed: ", delete_count)
 
@@ -129,12 +89,17 @@ def compute_transition_matrix(mon, hex_indices, map_h3_to_mat, no_particles, no_
     del_index = np.where(mon_trans_matrix.indices == map_h3_to_mat[-1])[0]
     print('deleted particles: ', np.sum(mon_trans_matrix.data[del_index]))
 
-    # perform row normalization for transitions and confirm order
-    norm_matrix = normalize(mon_trans_matrix, 'l1', axis=1, copy=True)
-    assert np.array_equal(norm_matrix.indptr, mon_min_temp_matrix.indptr)
-    assert np.array_equal(norm_matrix.indices, mon_max_sal_matrix.indices)
+    # # perform row normalization for transitions and confirm order
+    # norm_matrix = normalize(mon_trans_matrix, 'l1', axis=1, copy=True)
+    # assert np.array_equal(norm_matrix.indptr, mon_min_temp_matrix.indptr)
+    # assert np.array_equal(norm_matrix.indices, mon_max_sal_matrix.indices)
 
-    # Store Average or totoal number of transitions
+    # create binary matrix from transitional data and confirm order
+    bin_matrix = mxh.binary_matrix(mon_trans_matrix)
+    assert np.array_equal(bin_matrix.indptr, mon_min_temp_matrix.indptr)
+    assert np.array_equal(bin_matrix.indices, mon_max_sal_matrix.indices)
+
+    # Store Average or total number of transitions
     # compute the average min and max T/S for each grid cell
     def get_avg_field_per_grid(data, f_type, field):
         avg_field = data / mon_trans_matrix.data
@@ -148,11 +113,11 @@ def compute_transition_matrix(mon, hex_indices, map_h3_to_mat, no_particles, no_
         avg_min_sal_per_grid = get_avg_field_per_grid(mon_min_sal_matrix.data, 'minimum', 'salinity')
         avg_max_sal_per_grid = get_avg_field_per_grid(mon_max_sal_matrix.data, 'maximum', 'salinity')
         # export all matrices to npz file
-        np.savez_compressed(export_folder + 't{0}m/CSR_{1}.npz'.format(sim_depth, mon), transprob=norm_matrix.data,
+        np.savez_compressed(output_path + 'CSR_{0}.npz'.format(mon), transprob=bin_matrix.data,
                             mintemp=avg_min_temp_per_grid, maxtemp=avg_max_temp_per_grid, minsal=avg_min_sal_per_grid,
-                            maxsal=avg_max_sal_per_grid, indices=norm_matrix.indices, indptr=norm_matrix.indptr)
+                            maxsal=avg_max_sal_per_grid, indices=bin_matrix.indices, indptr=bin_matrix.indptr)
     elif option == 2:
-        np.savez_compressed(export_folder + 't{0}m/Sum_CSR_{1}.npz'.format(sim_depth, mon),
+        np.savez_compressed(output_path + 'Sum_CSR_{0}.npz'.format(mon),
                             transprob=mon_trans_matrix.data,
                             mintemp=mon_min_temp_matrix.data,
                             maxtemp=mon_max_temp_matrix.data,
@@ -174,23 +139,22 @@ def main():
     sim_depth = np.int32(args[1])
     assert 0 <= sim_depth <= 500
 
-    master_uni_hex = np.load('/nethome/manra003/data/MasterHexList_Res3.npy').tolist()
+    master_uni_hex = np.load(data_folder + 'MasterHexList_Res3.npy').tolist()
     assert len(master_uni_hex) == 8243
 
-    no_particles = len(np.load('/nethome/manra003/data/AllRes5Children.npy'))
+    no_particles = len(np.load(data_folder + 'AllRes5Children.npy'))
     assert no_particles == 377583
 
     no_grids = len(master_uni_hex)
 
-    hex_indices = np.append(master_uni_hex, (NEW, DEL))
+    hex_indices = mxh.main_hex_list(master_uni_hex)
     mat_indices = np.arange(0, len(hex_indices))
     map_h3_to_mat = pd.Series(index=hex_indices, data=mat_indices)
 
     months = np.array(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
-    #     months = np.array(['Jan'])
-    output_path = export_folder + 't{0}m/'.format(sim_depth)
-    os.makedirs(output_path, exist_ok=True)
-    [compute_transition_matrix(mon, hex_indices, map_h3_to_mat, no_particles, no_grids, sim_depth) for mon in
+    path_dir = export_folder + 't{0}m/'.format(sim_depth)
+    os.makedirs(path_dir, exist_ok=True)
+    [compute_transition_matrix(mon, hex_indices, map_h3_to_mat, no_particles, no_grids, sim_depth, path_dir) for mon in
      months]
 
 
