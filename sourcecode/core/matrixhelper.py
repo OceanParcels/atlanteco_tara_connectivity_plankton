@@ -51,19 +51,19 @@ def get_invalid_trajectories(ds):
     # static points analysis- points that did not change their position at all
     static_pts_index = \
         np.where(np.logical_and((ds['lat'][:, 0] == ds['lat'][:, -1]), (ds['lon'][:, 0] == ds['lon'][:, -1])))[0]
-    print("Static Points count: ", len(static_pts_index))
+#     print("Static Points count: ", len(static_pts_index))
 
     # points with 0 fields of temp or salinity
     maxsal_zero_index = np.where(ds['max_sal'][:, -1] == 0)[0]
-    print("Zero MAX Salinity count: ", len(maxsal_zero_index))
+#     print("Zero MAX Salinity count: ", len(maxsal_zero_index))
     minsal_zero_index = np.where(ds['min_sal'][:, -1] == 0)[0]
-    print("Zero MIN Salinity count: ", len(minsal_zero_index))
+#     print("Zero MIN Salinity count: ", len(minsal_zero_index))
     # only possible scenario is when a particle will get a lower salinity-when stuck
 
     maxtemp_zero_index = np.where(ds['max_temp'][:, -1] == 0)[0]
-    print("Zero MAX Temperature count: ", len(maxtemp_zero_index))
+#     print("Zero MAX Temperature count: ", len(maxtemp_zero_index))
     mintemp_zero_index = np.where(ds['min_temp'][:, -1] == 0)[0]
-    print("Zero MIN Temperature count: ", len(mintemp_zero_index))
+#     print("Zero MIN Temperature count: ", len(mintemp_zero_index))
     # here both scenarios are possible, particle with >0 min_temperature and <0 max_temp
     # it is possible to find unique scenarios when maz_temp was below 0 and hex
     # when it gets stuck the max_temp gets updated to zero
@@ -106,8 +106,8 @@ def get_monthly_tm(ds, invalid_indices, trans_array, rows_array, cols_array, min
 
     # get min and max temperature data
     min_temperature, max_temperature = get_valid_data('min_temp', -1), get_valid_data('max_temp', -1)
-    print('Min/Max of Minimum Temperature: {0} / {1}'.format(np.min(min_temperature), np.max(min_temperature)))
-    print('Min/Max of Maximum Temperature: {0} / {1}'.format(np.min(max_temperature), np.max(max_temperature)))
+#     print('Min/Max of Minimum Temperature: {0} / {1}'.format(np.min(min_temperature), np.max(min_temperature)))
+#     print('Min/Max of Maximum Temperature: {0} / {1}'.format(np.min(max_temperature), np.max(max_temperature)))
 
     min_temp_matrix = get_coo_matrix(min_temperature, rows, cols, no_grids)
     max_temp_matrix = get_coo_matrix(max_temperature, rows, cols, no_grids)
@@ -116,8 +116,8 @@ def get_monthly_tm(ds, invalid_indices, trans_array, rows_array, cols_array, min
 
     # get min and max salinity data
     min_salinity, max_salinity = get_valid_data('min_sal', -1), get_valid_data('max_sal', -1)
-    print('Min/Max of Minimum Salinity: {0} / {1}'.format(np.min(min_salinity), np.max(min_salinity)))
-    print('Min/Max of Maximum Salinity: {0} / {1}'.format(np.min(max_salinity), np.max(max_salinity)))
+#     print('Min/Max of Minimum Salinity: {0} / {1}'.format(np.min(min_salinity), np.max(min_salinity)))
+#     print('Min/Max of Maximum Salinity: {0} / {1}'.format(np.min(max_salinity), np.max(max_salinity)))
 
     min_sal_matrix = get_coo_matrix(min_salinity, rows, cols, no_grids)
     max_sal_matrix = get_coo_matrix(max_salinity, rows, cols, no_grids)
@@ -137,6 +137,7 @@ def binary_matrix(matrix):
                       shape=matrix.shape)
 
 
-def avg_field_per_grid(f_data, t_data):
+def avg_field_per_grid(f_data, t_data, f_type, field):
     avg_field = f_data / t_data
+    print('Min/Max average {0} {1}: {2} / {3}'.format(f_type, field, np.min(avg_field), np.max(avg_field)))
     return avg_field

@@ -9,7 +9,7 @@ from time import time
 
 data_folder = '/nethome/manra003/data/'
 home_folder = '/nethome/manra003/sim_out/'
-export_folder = '/nethome/storage/shared/oceanparcels/output_data/data_Darshika/TaraC/'
+export_folder = '/nethome/manra003/data/'
 NEW = 'new'
 DEL = 'deleted'
 SIM_PER_MONTH = 10
@@ -20,7 +20,6 @@ sim_depth = 0
 
 def get_all_matrices_for_month(mon, hex_indices, map_h3_to_mat, no_grids, sim_depth, no_particles, sample_set,
                                path_dir):
-    tf1 = time()
     files = sorted(glob(home_folder + 'tara{0}m/FullTara_Res5_TS_1{1}*_dt600_z{0}.nc'.format(sim_depth, mon)))
     assert len(files) == SIM_PER_MONTH
     trans_array = np.empty(0)
@@ -30,6 +29,7 @@ def get_all_matrices_for_month(mon, hex_indices, map_h3_to_mat, no_grids, sim_de
     max_sal_array = np.empty(0)
     rows_array = np.empty(0)
     cols_array = np.empty(0)
+    delete_count = 0
 
     for file in files:
         ds = xr.open_dataset(file)
@@ -38,10 +38,11 @@ def get_all_matrices_for_month(mon, hex_indices, map_h3_to_mat, no_grids, sim_de
 
         invalid_indices = mxh.get_invalid_trajectories(ds)
         # here: also add particles not selected for sample set
-        invalid_indices = np.union1d(invalid_indices, np.delete(range(no_particles), sample_set))
+        remove_indices = np.union1d(invalid_indices, np.delete(range(no_particles), sample_set))
+        delete_count +=  len(remove_indices) + len(sample_set) - no_particles
 
         trans_array, rows_array, cols_array, min_temp_array, max_temp_array, min_sal_array, max_sal_array = mxh.get_monthly_tm(
-            ds, invalid_indices, trans_array, rows_array, cols_array, min_temp_array, max_temp_array,
+            ds, remove_indices, trans_array, rows_array, cols_array, min_temp_array, max_temp_array,
             min_sal_array, max_sal_array, no_grids, parent_res, child_res, hex_indices, map_h3_to_mat)
 
     # collate entries for same row and column pair
@@ -56,17 +57,19 @@ def get_all_matrices_for_month(mon, hex_indices, map_h3_to_mat, no_grids, sim_de
     assert np.array_equal(mon_max_temp_matrix.indices, mon_max_sal_matrix.indices)
     assert np.array_equal(mon_trans_matrix.indptr, mon_max_temp_matrix.indptr)
     assert np.array_equal(mon_min_temp_matrix.indptr, mon_min_sal_matrix.indptr)
-    assert mon_trans_matrix.sum() == len(sample_set) * SIM_PER_MONTH
+    print(mon_trans_matrix.sum())
+    print(len(sample_set),SIM_PER_MONTH,delete_count,len(sample_set) * SIM_PER_MONTH - delete_count)
+    assert mon_trans_matrix.sum() == len(sample_set) * SIM_PER_MONTH - delete_count
 
     # create binary matrix from transitional data and confirm order
     bin_matrix = mxh.binary_matrix(mon_trans_matrix)
     assert np.array_equal(bin_matrix.indptr, mon_min_temp_matrix.indptr)
     assert np.array_equal(bin_matrix.indices, mon_max_sal_matrix.indices)
 
-    avg_min_temp_per_grid = mxh.avg_field_per_grid(mon_min_temp_matrix.data, mon_trans_matrix.data)
-    avg_max_temp_per_grid = mxh.avg_field_per_grid(mon_max_temp_matrix.data, mon_trans_matrix.data)
-    avg_min_sal_per_grid = mxh.avg_field_per_grid(mon_min_sal_matrix.data, mon_trans_matrix.data)
-    avg_max_sal_per_grid = mxh.avg_field_per_grid(mon_max_sal_matrix.data, mon_trans_matrix.data)
+    avg_min_temp_per_grid = mxh.avg_field_per_grid(mon_min_temp_matrix.data, mon_trans_matrix.data, 'minimum', 'temperature')
+    avg_max_temp_per_grid = mxh.avg_field_per_grid(mon_max_temp_matrix.data, mon_trans_matrix.data, 'maximum', 'temperature')
+    avg_min_sal_per_grid = mxh.avg_field_per_grid(mon_min_sal_matrix.data, mon_trans_matrix.data, 'minimum', 'salinity')
+    avg_max_sal_per_grid = mxh.avg_field_per_grid(mon_max_sal_matrix.data, mon_trans_matrix.data, 'maximum', 'salinity')
     # export all matrices to npz file
     np.savez_compressed(path_dir + 'CSR_{0}_z{1}.npz'.format(mon, sim_depth),
                         transprob=bin_matrix.data,
@@ -76,9 +79,7 @@ def get_all_matrices_for_month(mon, hex_indices, map_h3_to_mat, no_grids, sim_de
                         maxsal=avg_max_sal_per_grid,
                         indices=bin_matrix.indices,
                         indptr=bin_matrix.indptr)
-
-    tf2 = time()
-    print(mon, ":", tf2 - tf1)
+    
 
 
 def main():
@@ -97,8 +98,8 @@ def main():
 
     sample_size = [5000, 10000, 50000, 100000, 200000, 300000]
 
-    init_state = 1
-    end_state = 10
+    init_state = 21
+    end_state = 30
 
     for size in sample_size:
         t1 = time()

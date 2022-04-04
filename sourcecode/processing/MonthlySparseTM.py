@@ -15,7 +15,7 @@ import sys
 
 home_folder = '/nethome/manra003/sim_out/'
 data_folder = '/nethome/manra003/data/'
-export_folder = '/nethome/storage/shared/oceanparcels/output_data/data_Darshika/TaraC/'
+export_folder = '/nethome/manra003/data/'
 
 SIM_PER_MONTH = 10
 parent_res = 3
