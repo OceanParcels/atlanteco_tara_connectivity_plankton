@@ -15,7 +15,7 @@ import sys
 
 home_folder = '/nethome/manra003/sim_out/'
 data_folder = '/nethome/manra003/data/'
-export_folder = '/nethome/manra003/data/'
+export_folder = '/nethome/manra003/analysis/paper01/depths/'
 
 SIM_PER_MONTH = 10
 parent_res = 3
@@ -41,7 +41,7 @@ def compute_transition_matrix(mon, hex_indices, map_h3_to_mat, no_grids, sim_dep
 
         invalid_indices = mxh.get_invalid_trajectories(ds)
         delete_count += len(invalid_indices)
-        print("invalid indices count:", len(invalid_indices))
+#         print("invalid indices count:", len(invalid_indices))
 
         trans_array, min_temp_array, max_temp_array, min_sal_array, max_sal_array = mxh.get_monthly_matrix(
             ds, invalid_indices, trans_array, min_temp_array, max_temp_array,
@@ -85,16 +85,15 @@ def compute_transition_matrix(mon, hex_indices, map_h3_to_mat, no_grids, sim_dep
 
     print(
         "-------------------------------\nMonth: %s- \nTotalNumber of connections: %d" % (mon, mon_trans_matrix.sum()))
-    print("recorded transition pairs: ", len(mon_trans_matrix.data))
     new_index = np.where(mon_trans_matrix.indices == map_h3_to_mat[-2])[0]
     print('new particles: ', np.sum(mon_trans_matrix.data[new_index]))
     del_index = np.where(mon_trans_matrix.indices == map_h3_to_mat[-1])[0]
     print('deleted particles: ', np.sum(mon_trans_matrix.data[del_index]))
 
     # export all matrices to npz file
-    np.savez_compressed(output_path + 'CSR_{0}.npz'.format(mon), transprob=trans_array.data,
-                        mintemp=min_temp_array.data, maxtemp=max_temp_array.data, minsal=min_sal_array.data,
-                        maxsal=max_sal_array.data, indices=trans_array.indices, indptr=trans_array.indptr)
+    np.savez_compressed(output_path + 'CSR_{0}.npz'.format(mon), transprob=mon_trans_matrix.data,
+                        mintemp=mon_min_temp_matrix.data, maxtemp=mon_max_temp_matrix.data, minsal=mon_min_sal_matrix.data,
+                        maxsal=mon_max_sal_matrix.data, indices=mon_trans_matrix.indices, indptr=mon_trans_matrix.indptr)
 
     t_mon2 = time()
     print("analysis time: ", t_mon2 - t_mon1)
