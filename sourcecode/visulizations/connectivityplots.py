@@ -25,7 +25,7 @@ def plot_paths(x, y, c, master_hex_ids, forward_path, backward_path, f_time_laps
                path_to_compute):
     fig = plt.figure()
     ax = plt.axes()
-    colormap = clr.ListedColormap(['gainsboro', 'white'])
+    colormap = clr.ListedColormap(['grey', 'white'])
     # remove the first row and first column from the glamf/gphif to access points enclosed in the center
     ax.pcolormesh(x[0], y[0], c[0, 0, 1:, 1:], cmap=colormap)
     print("base map ready")
@@ -50,7 +50,7 @@ def plot_paths(x, y, c, master_hex_ids, forward_path, backward_path, f_time_laps
         ax.add_collection(pc)
         sm1 = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
         sm1.set_array(time_laps)
-        cb1 = fig.colorbar(sm1, ax=ax, pad=0.1, orientation='vertical')
+        cb1 = fig.colorbar(sm1, ax=ax, orientation='vertical')
         cb1.set_label('{0} to {1} path time laps in years'.format(s, d))
 
     plot_path(b_time_laps, backward_path, plt.cm.Wistia.reversed(), d_code, s_code, 'sandybrown')
@@ -59,9 +59,9 @@ def plot_paths(x, y, c, master_hex_ids, forward_path, backward_path, f_time_laps
 
 
 def plot_shortest_paths_subset(x, y, c, master_hex_ids, f_paths, b_paths, s_code, d_code):
-    fig = plt.figure(constrained_layout=True)
+    fig = plt.figure(dpi=120)
     ax = plt.axes()
-    colormap = clr.ListedColormap(['gainsboro', 'white'])
+    colormap = clr.ListedColormap(['grey', 'white'])
     # remove the first row and first column from the glamf/gphif to access points enclosed in the center
     ax.pcolormesh(x[0], y[0], c[0, 0, 1:, 1:], cmap=colormap)
     print("base map ready")
@@ -81,7 +81,7 @@ def plot_shortest_paths_subset(x, y, c, master_hex_ids, f_paths, b_paths, s_code
     # colors = get_cmap(len(paths))
     # [plot_path(paths[i], colors(i)) for i in range(len(paths))]
     [plot_path(f_paths[i], 'blue') for i in range(len(f_paths))]
-    [plot_path(b_paths[i], 'red') for i in range(len(b_paths))]
+    # [plot_path(b_paths[i], 'red') for i in range(len(b_paths))]
     plt.show()
 
 
