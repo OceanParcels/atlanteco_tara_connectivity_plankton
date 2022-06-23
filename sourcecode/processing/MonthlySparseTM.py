@@ -10,14 +10,20 @@ import pandas as pd
 from time import time
 import sourcecode.core.matrixhelper as mxh
 from scipy.sparse import csr_matrix
+from sklearn.preprocessing import normalize
 import os
 import sys
 
 home_folder = '/nethome/manra003/sim_out/'
 data_folder = '/nethome/manra003/data/'
 export_folder = '/nethome/manra003/analysis/paper01/depths/'
+# home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task7D/'
+# data_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task7D/'
+# export_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task7D/'
 
 SIM_PER_MONTH = 10
+NEW = 'new'
+DEL = 'deleted'
 parent_res = 3
 child_res = 5
 
@@ -27,11 +33,24 @@ def compute_transition_matrix(mon, hex_indices, map_h3_to_mat, no_grids, sim_dep
     files = sorted(glob(home_folder + 'tara{0}m/FullTara_Res5_TS_1{1}*_dt600_z{0}.nc'.format(sim_depth, mon)))
     assert len(files) == SIM_PER_MONTH
 
-    trans_array = np.zeros((no_grids, no_grids + 2))
-    min_temp_array = np.full((no_grids, no_grids + 2), -999, dtype='float')
-    max_temp_array = np.full((no_grids, no_grids + 2), 999, dtype='float')
-    min_sal_array = np.full((no_grids, no_grids + 2), -999, dtype='float')
-    max_sal_array = np.full((no_grids, no_grids + 2), 999, dtype='float')
+    trans_array = np.empty(0)
+    rows_array = np.empty(0)
+    cols_array = np.empty(0)
+
+    min_Mintemp_array = np.full((no_grids, no_grids + 2), 999, dtype='float32')
+    max_Mintemp_array = np.full((no_grids, no_grids + 2), -999, dtype='float32')
+    min_Maxtemp_array = np.full((no_grids, no_grids + 2), 999, dtype='float32')
+    max_Maxtemp_array = np.full((no_grids, no_grids + 2), -999, dtype='float32')
+    Mintemp_array = np.empty(0)
+    Maxtemp_array = np.empty(0)
+
+    min_Minsal_array = np.full((no_grids, no_grids + 2), 999, dtype='float32')
+    max_Minsal_array = np.full((no_grids, no_grids + 2), -999, dtype='float32')
+    min_Maxsal_array = np.full((no_grids, no_grids + 2), 999, dtype='float32')
+    max_Maxsal_array = np.full((no_grids, no_grids + 2), -999, dtype='float32')
+    Minsal_array = np.empty(0)
+    Maxsal_array = np.empty(0)
+
     delete_count = 0
 
     for file in files:
@@ -41,59 +60,182 @@ def compute_transition_matrix(mon, hex_indices, map_h3_to_mat, no_grids, sim_dep
 
         invalid_indices = mxh.get_invalid_trajectories(ds)
         delete_count += len(invalid_indices)
-#         print("invalid indices count:", len(invalid_indices))
 
-        trans_array, min_temp_array, max_temp_array, min_sal_array, max_sal_array = mxh.get_monthly_matrix(
-            ds, invalid_indices, trans_array, min_temp_array, max_temp_array,
-            min_sal_array, max_sal_array, no_grids, parent_res, child_res, hex_indices, map_h3_to_mat)
+        def get_valid_data(field_name, loc):
+            return np.delete(ds[field_name][:, loc].values, invalid_indices)
 
+        hex_t0 = mxh.get_hexid_from_parent(get_valid_data('lon', 0), get_valid_data('lat', 0), child_res,
+                                           parent_res)
+        # assert np.array_equal(hex_t0, master_all_hex_t0)
+        hex_t1 = mxh.get_hexid_from_parent(get_valid_data('lon', -1), get_valid_data('lat', -1), child_res,
+                                           parent_res)
+
+        # mask hex ids that are new
+        hex_t1_new = np.where(np.isin(hex_t1, hex_indices), hex_t1, NEW)
+        # mask hex ids in hex_t1_new that were deleted during the simulation
+        hex_t1_new = np.where(get_valid_data('time', -1) < np.max(ds['time'][:, -1].values), DEL, hex_t1_new)
+
+        rows = map_h3_to_mat[hex_t0].values
+        cols = map_h3_to_mat[hex_t1_new].values
+
+        transitions = np.ones((len(hex_t0)))
+
+        # reduces duplicate connections between grid pairs,
+        # returns sum of number of connections between grid pairs
+        t_matrix = mxh.get_coo_matrix(transitions, rows, cols, no_grids)
+        trans_array = np.append(trans_array, t_matrix.data)
+        rows_array = np.append(rows_array, t_matrix.row)
+        cols_array = np.append(cols_array, t_matrix.col)
+
+        # region: get min and max temperature and salinity data
+        t_prop1 = time()
+        min_temperature, max_temperature = get_valid_data('min_temp', -1), get_valid_data('max_temp', -1)
+        min_salinity, max_salinity = get_valid_data('min_sal', -1), get_valid_data('max_sal', -1)
+
+        property_df = pd.DataFrame({'rows': rows,
+                                    'cols': cols,
+                                    'min_t': min_temperature,
+                                    'max_t': max_temperature,
+                                    'min_s': min_salinity,
+                                    'max_s': max_salinity})
+
+        analysis_df = property_df.groupby(['rows', 'cols']).aggregate({'min_t': ['min', 'max'],
+                                                                       'max_t': ['min', 'max'],
+                                                                       'min_s': ['min', 'max'],
+                                                                       'max_s': ['min', 'max']}).reset_index()
+
+        r = analysis_df['rows'].values
+        c = analysis_df['cols'].values
+        # Min max property extraction
+        # Example:minimum of minimum T and maximum of minimum T
+        min_Mintemp_array[r, c] = np.minimum(min_Mintemp_array[r, c], analysis_df.min_t['min'].values)
+        max_Mintemp_array[r, c] = np.maximum(max_Mintemp_array[r, c], analysis_df.min_t['max'].values)
+
+        min_Maxtemp_array[r, c] = np.minimum(min_Maxtemp_array[r, c], analysis_df.max_t['min'].values)
+        max_Maxtemp_array[r, c] = np.maximum(max_Maxtemp_array[r, c], analysis_df.max_t['max'].values)
+
+        min_Minsal_array[r, c] = np.minimum(min_Minsal_array[r, c], analysis_df.min_s['min'].values)
+        max_Minsal_array[r, c] = np.maximum(max_Minsal_array[r, c], analysis_df.min_s['max'].values)
+
+        min_Maxsal_array[r, c] = np.minimum(min_Maxsal_array[r, c], analysis_df.max_s['min'].values)
+        max_Maxsal_array[r, c] = np.maximum(max_Maxsal_array[r, c], analysis_df.max_s['max'].values)
+
+        min_temp_matrix = mxh.get_coo_matrix(min_temperature, rows, cols, no_grids)
+        max_temp_matrix = mxh.get_coo_matrix(max_temperature, rows, cols, no_grids)
+        Mintemp_array = np.append(Mintemp_array, min_temp_matrix.data)
+        Maxtemp_array = np.append(Maxtemp_array, max_temp_matrix.data)
+
+        min_sal_matrix = mxh.get_coo_matrix(min_salinity, rows, cols, no_grids)
+        max_sal_matrix = mxh.get_coo_matrix(max_salinity, rows, cols, no_grids)
+        Minsal_array = np.append(Minsal_array, min_sal_matrix.data)
+        Maxsal_array = np.append(Maxsal_array, max_sal_matrix.data)
+        t_prop2 = time()
+        print(t_prop2 - t_prop1)
+        # endregion
     print("Total invalid trajectories removed: ", delete_count)
 
-    min_temp_array[min_temp_array == -999] = 0
-    max_temp_array[max_temp_array == 999] = 0
-    min_sal_array[min_sal_array == -999] = 0
-    max_sal_array[max_sal_array == 999] = 0
+    min_Mintemp_array[min_Mintemp_array == 999] = 0
+    max_Mintemp_array[max_Mintemp_array == -999] = 0
+    min_Maxtemp_array[min_Maxtemp_array == 999] = 0
+    max_Maxtemp_array[max_Maxtemp_array == -999] = 0
+    min_Minsal_array[min_Minsal_array == 999] = 0
+    max_Minsal_array[max_Minsal_array == -999] = 0
+    min_Maxsal_array[min_Maxsal_array == 999] = 0
+    max_Maxsal_array[max_Maxsal_array == -999] = 0
 
-    assert (max_temp_array - min_temp_array).all() >= 0
-    assert (max_sal_array - min_sal_array).all() >= 0
+    mon_trans_matrix = mxh.get_coo_matrix(trans_array, rows_array, cols_array, no_grids).tocsr()
+    print('Range of Transitions: {0} / {1}'.format(np.min(mon_trans_matrix.data), np.max(mon_trans_matrix.data)))
 
-    mon_trans_matrix = csr_matrix(trans_array)
-    print('Min/Max SUM of Transitions: {0} / {1}'.format(np.min(mon_trans_matrix.data), np.max(mon_trans_matrix.data)))
+    # region: extract temperature to sparse matrices
+    mon_min_mintemp_matrix = csr_matrix(min_Mintemp_array)
+    print('Range of Minimum of Minimum Temperature: {0} / {1}'.format(np.min(mon_min_mintemp_matrix.data),
+                                                                      np.max(mon_min_mintemp_matrix.data)))
+    mon_max_mintemp_matrix = csr_matrix(max_Mintemp_array)
+    print('Range of Maximum of Minimum Temperature: {0} / {1}'.format(np.min(mon_max_mintemp_matrix.data),
+                                                                      np.max(mon_max_mintemp_matrix.data)))
+    mon_min_maxtemp_matrix = csr_matrix(min_Maxtemp_array)
+    print('Range of Minimum of Maximum Temperature: {0} / {1}'.format(np.min(mon_min_maxtemp_matrix.data),
+                                                                      np.max(mon_min_maxtemp_matrix.data)))
+    mon_max_maxtemp_matrix = csr_matrix(max_Maxtemp_array)
+    print('Range of Minimum of Maximum Temperature: {0} / {1}'.format(np.min(mon_max_maxtemp_matrix.data),
+                                                                      np.max(mon_max_maxtemp_matrix.data)))
+    mon_min_temp_matrix = mxh.get_coo_matrix(Mintemp_array, rows_array, cols_array, no_grids).tocsr()
+    print('Sum Minimum Temperature: {0} / {1}'.format(np.min(mon_min_temp_matrix.data),
+                                                      np.max(mon_min_temp_matrix.data)))
+    mon_max_temp_matrix = mxh.get_coo_matrix(Maxtemp_array, rows_array, cols_array, no_grids).tocsr()
+    print('Sum Maximum Temperature: {0} / {1}'.format(np.min(mon_max_temp_matrix.data),
+                                                      np.max(mon_max_temp_matrix.data)))
+    # endregion
 
-    mon_min_temp_matrix = csr_matrix(min_temp_array)
-    print('Min/Max SUM of Minimum Temperature: {0} / {1}'.format(np.min(mon_min_temp_matrix.data),
-                                                                 np.max(mon_min_temp_matrix.data)))
-
-    mon_max_temp_matrix = csr_matrix(max_temp_array)
-    print('Min/Max SUM of Maximum Temperature: {0} / {1}'.format(np.min(mon_max_temp_matrix.data),
-                                                                 np.max(mon_max_temp_matrix.data)))
-
-    mon_min_sal_matrix = csr_matrix(min_sal_array)
-    print('Min/Max SUM of Minimum Salinity: {0} / {1}'.format(np.min(mon_min_sal_matrix.data),
-                                                              np.max(mon_min_sal_matrix.data)))
-
-    mon_max_sal_matrix = csr_matrix(max_sal_array)
-    print('Min/Max SUM of Maximum Salinity: {0} / {1}'.format(np.min(mon_max_sal_matrix.data),
-                                                              np.max(mon_max_sal_matrix.data)))
-
+    # region: extract salinity to sparse matrices
+    mon_min_minsal_matrix = csr_matrix(min_Minsal_array)
+    print('Range of Minimum of Minimum Salinity: {0} / {1}'.format(np.min(mon_min_minsal_matrix.data),
+                                                                   np.max(mon_min_minsal_matrix.data)))
+    mon_max_minsal_matrix = csr_matrix(max_Minsal_array)
+    print('Range of Maximum of Minimum Salinity: {0} / {1}'.format(np.min(mon_max_minsal_matrix.data),
+                                                                   np.max(mon_max_minsal_matrix.data)))
+    mon_min_maxsal_matrix = csr_matrix(min_Maxsal_array)
+    print('Range of Minimum of Maximum Salinity: {0} / {1}'.format(np.min(mon_min_maxsal_matrix.data),
+                                                                   np.max(mon_min_maxsal_matrix.data)))
+    mon_max_maxsal_matrix = csr_matrix(max_Maxsal_array)
+    print('Range of Minimum of Maximum Salinity: {0} / {1}'.format(np.min(mon_max_maxsal_matrix.data),
+                                                                   np.max(mon_max_maxsal_matrix.data)))
+    mon_min_sal_matrix = mxh.get_coo_matrix(Minsal_array, rows_array, cols_array, no_grids).tocsr()
+    print('Sum Minimum Salinity: {0} / {1}'.format(np.min(mon_min_sal_matrix.data),
+                                                   np.max(mon_min_sal_matrix.data)))
+    mon_max_sal_matrix = mxh.get_coo_matrix(Maxsal_array, rows_array, cols_array, no_grids).tocsr()
+    print('Sum Maximum Salinity: {0} / {1}'.format(np.min(mon_max_sal_matrix.data),
+                                                   np.max(mon_max_sal_matrix.data)))
+    # endregion
     # verify before exporting data
     # order of saving data is same for all fields
-    assert np.array_equal(mon_trans_matrix.indices, mon_min_temp_matrix.indices)
-    assert np.array_equal(mon_max_temp_matrix.indices, mon_max_sal_matrix.indices)
-    assert np.array_equal(mon_trans_matrix.indptr, mon_max_temp_matrix.indptr)
-    assert np.array_equal(mon_min_temp_matrix.indptr, mon_min_sal_matrix.indptr)
+    assert np.array_equal(mon_trans_matrix.indices, mon_min_mintemp_matrix.indices)
+    assert np.array_equal(mon_min_maxtemp_matrix.indices, mon_max_minsal_matrix.indices)
+    assert np.array_equal(mon_trans_matrix.indptr, mon_max_maxtemp_matrix.indptr)
+    assert np.array_equal(mon_min_maxtemp_matrix.indptr, mon_min_minsal_matrix.indptr)
 
     print(
         "-------------------------------\nMonth: %s- \nTotalNumber of connections: %d" % (mon, mon_trans_matrix.sum()))
+
+    # perform row normalization for transitions and confirm order
+    norm_matrix = normalize(mon_trans_matrix, 'l1', axis=1, copy=True)
+    assert np.array_equal(norm_matrix.indptr, mon_min_maxtemp_matrix.indptr)
+    assert np.array_equal(norm_matrix.indices, mon_max_minsal_matrix.indices)
+
+    # Store Average or totoal number of transitions
+    # compute the average min and max T/S for each grid cell
+    def get_avg_field_per_grid(data, f_type, field):
+        avg_field = data / mon_trans_matrix.data
+        print('Min/Max average {0} {1}: {2} / {3}'.format(f_type, field, np.min(avg_field), np.max(avg_field)))
+        return avg_field
+
     new_index = np.where(mon_trans_matrix.indices == map_h3_to_mat[-2])[0]
     print('new particles: ', np.sum(mon_trans_matrix.data[new_index]))
     del_index = np.where(mon_trans_matrix.indices == map_h3_to_mat[-1])[0]
     print('deleted particles: ', np.sum(mon_trans_matrix.data[del_index]))
 
+    avg_min_temp_per_grid = get_avg_field_per_grid(mon_min_temp_matrix.data, 'minimum', 'temperature')
+    avg_max_temp_per_grid = get_avg_field_per_grid(mon_max_temp_matrix.data, 'maximum', 'temperature')
+    avg_min_sal_per_grid = get_avg_field_per_grid(mon_min_sal_matrix.data, 'minimum', 'salinity')
+    avg_max_sal_per_grid = get_avg_field_per_grid(mon_max_sal_matrix.data, 'maximum', 'salinity')
+
     # export all matrices to npz file
-    np.savez_compressed(output_path + 'CSR_{0}.npz'.format(mon), transprob=mon_trans_matrix.data,
-                        mintemp=mon_min_temp_matrix.data, maxtemp=mon_max_temp_matrix.data, minsal=mon_min_sal_matrix.data,
-                        maxsal=mon_max_sal_matrix.data, indices=mon_trans_matrix.indices, indptr=mon_trans_matrix.indptr)
+    np.savez_compressed(output_path + 'CSR_{0}z{1}.npz'.format(mon, sim_depth),
+                        transprob=mon_trans_matrix.data,
+                        min_mintemp=mon_min_mintemp_matrix.data,
+                        max_mintemp=mon_max_mintemp_matrix.data,
+                        min_maxtemp=mon_min_maxtemp_matrix.data,
+                        max_maxtemp=mon_max_maxtemp_matrix.data,
+                        min_minsal=mon_min_minsal_matrix.data,
+                        max_minsal=mon_max_minsal_matrix.data,
+                        min_maxsal=mon_min_maxsal_matrix.data,
+                        max_maxsal=mon_max_maxsal_matrix.data,
+                        avg_min_temp=avg_min_temp_per_grid,
+                        avg_max_temp=avg_max_temp_per_grid,
+                        avg_min_sal=avg_min_sal_per_grid,
+                        avg_max_sal=avg_max_sal_per_grid,
+                        indices=mon_trans_matrix.indices,
+                        indptr=mon_trans_matrix.indptr)
 
     t_mon2 = time()
     print("analysis time: ", t_mon2 - t_mon1)
