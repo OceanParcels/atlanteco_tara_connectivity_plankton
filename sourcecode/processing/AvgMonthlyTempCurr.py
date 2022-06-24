@@ -26,7 +26,7 @@ def month_average(mon, field, file_pattern):
 # ONLY WORKING WITH SURFACE CURRENTS AT THE MOMENT- deptht=0
 
 # region: Monthly average of fields
-months = np.array(['01', '02', '03', '04', '05', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
+months = np.array(['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'])
 file_pattern = 'ROMEO.01_1d_thetao_20*{0}*_T.nc'
 [month_average(mon, 't', 'ROMEO.01_1d_thetao_20*{0}*_T.nc') for mon in months]
 
