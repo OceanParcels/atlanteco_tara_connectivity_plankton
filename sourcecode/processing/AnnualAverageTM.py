@@ -2,7 +2,7 @@ import numpy as np
 from scipy.sparse import csr_matrix, save_npz
 import sys
 
-home_folder = '/nethome/manra003/atlanteco_tara_connectivity_plankton/data/matrices/'
+home_folder = '/nethome/manra003/analysis/paper01/depths/'
 # home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task7D/'
 
 
@@ -79,8 +79,7 @@ def main():
                                                                                data['indptr'], no_grids)
 
     compute_binary_matrix(monthly_sum_trans.todense(), no_grids)
-    # remaining without the new column(8245) and deleted(8246)
-    # compute_grid_annual_average(monthly_full_trans_prob[:, :, :no_grids], nnz_count_matrix, 'DomainAdjacency')
+    # remaining without the new column(8244) and deleted(8245)
     nnz_count_matrix = monthly_sum_trans.todense()[:, :no_grids]
     nnz_count_matrix[nnz_count_matrix == 0] = 1
     compute_grid_nnz_average(monthly_sum_min_mintemp.todense()[:, :no_grids], nnz_count_matrix, 'min_MinTemperature')
