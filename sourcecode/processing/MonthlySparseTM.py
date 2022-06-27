@@ -197,12 +197,7 @@ def compute_transition_matrix(mon, hex_indices, map_h3_to_mat, no_grids, sim_dep
     print(
         "-------------------------------\nMonth: %s- \nTotalNumber of connections: %d" % (mon, mon_trans_matrix.sum()))
 
-    # perform row normalization for transitions and confirm order
-    norm_matrix = normalize(mon_trans_matrix, 'l1', axis=1, copy=True)
-    assert np.array_equal(norm_matrix.indptr, mon_min_maxtemp_matrix.indptr)
-    assert np.array_equal(norm_matrix.indices, mon_max_minsal_matrix.indices)
-
-    # Store Average or totoal number of transitions
+    # Store Average or total number of transitions
     # compute the average min and max T/S for each grid cell
     def get_avg_field_per_grid(data, f_type, field):
         avg_field = data / mon_trans_matrix.data
