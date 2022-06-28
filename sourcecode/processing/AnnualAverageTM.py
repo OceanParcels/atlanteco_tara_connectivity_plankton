@@ -3,7 +3,7 @@ from scipy.sparse import csr_matrix, save_npz
 import sys
 
 home_folder = '/nethome/manra003/analysis/paper01/depths/'
-# home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task7D/'
+# home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task8E/'
 
 
 def get_csr_matrix(matrix_data, indices, indptr, no_grids):
@@ -16,10 +16,15 @@ def compute_binary_matrix(matrix, no_grids):
     save_npz(home_folder + 'Annual_Binary_DomainAdjacency_csr.npz', csr_matrix(matrix[:, :no_grids]))
 
 
+def save_matrix(matrix, matrix_type):
+    print(matrix_type, np.nanmin(matrix), np.nanmax(matrix), np.nanmean(matrix))
+    save_npz(home_folder + 'Annual_{0}_csr.npz'.format(matrix_type), csr_matrix(matrix))
+
+
 def compute_grid_nnz_average(matrix, nnz_count_matrix, matrix_type):
-    avg_matrix = matrix / nnz_count_matrix
-    print(matrix_type, np.nanmin(avg_matrix), np.nanmax(avg_matrix), np.nanmean(avg_matrix))
-    save_npz(home_folder + 'Annual_Avg_{0}_csr.npz'.format(matrix_type), csr_matrix(avg_matrix))
+    avg_matrix = np.divide(matrix, nnz_count_matrix, out=np.zeros_like(matrix), where=nnz_count_matrix != 0)
+    # avg_matrix = matrix / nnz_count_matrix  avoiding division by zero
+    save_matrix(avg_matrix, matrix_type)
 
 
 def main():
@@ -27,19 +32,18 @@ def main():
     assert len(args) == 2
     sim_depth = np.int32(args[1])
     assert 0 <= sim_depth <= 500
-
     global home_folder
     home_folder = home_folder + 't{0}m/'.format(sim_depth)
 
     no_grids = len(np.load('/nethome/manra003/data/MasterHexList_Res3.npy').tolist())
-    # no_grids = len(np.load('/Users/dmanral/Desktop/Analysis/TARA/Task7D/MasterHexList_Res3.npy').tolist())
+    # no_grids = len(np.load('/Users/dmanral/Desktop/Analysis/TARA/Task8E/MasterHexList_Res3.npy').tolist())
     months = np.array(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
 
-    monthly_sum_trans = csr_matrix((no_grids, no_grids + 2), dtype=np.float32)
-    monthly_sum_min_mintemp = csr_matrix((no_grids, no_grids + 2), dtype=np.float32)
-    monthly_sum_max_mintemp = csr_matrix((no_grids, no_grids + 2), dtype=np.float32)
-    monthly_sum_min_maxtemp = csr_matrix((no_grids, no_grids + 2), dtype=np.float32)
-    monthly_sum_max_maxtemp = csr_matrix((no_grids, no_grids + 2), dtype=np.float32)
+    monthly_sum_trans = np.zeros((no_grids, no_grids + 2), dtype=np.float32)
+    monthly_min_mintemp = np.full((no_grids, no_grids + 2), 999, dtype=np.float32)
+    monthly_max_mintemp = np.full((no_grids, no_grids + 2), -999, dtype=np.float32)
+    monthly_min_maxtemp = np.full((no_grids, no_grids + 2), 999, dtype=np.float32)
+    monthly_max_maxtemp = np.full((no_grids, no_grids + 2), -999, dtype=np.float32)
     monthly_sum_avg_mintemp = csr_matrix((no_grids, no_grids + 2), dtype=np.float32)
     monthly_sum_avg_maxtemp = csr_matrix((no_grids, no_grids + 2), dtype=np.float32)
 
@@ -63,31 +67,61 @@ def main():
 
     for mon, i in zip(months, range(len(months))):
         with np.load(home_folder + 'CSR_{0}z{1}.npz'.format(mon, sim_depth)) as data:
-            monthly_sum_trans = monthly_sum_trans + get_csr_matrix(data['transprob'], data['indices'],
-                                                                   data['indptr'], no_grids)
-            monthly_sum_min_mintemp = monthly_sum_min_mintemp + get_csr_matrix(data['min_mintemp'], data['indices'],
-                                                                               data['indptr'], no_grids)
-            monthly_sum_max_mintemp = monthly_sum_max_mintemp + get_csr_matrix(data['max_mintemp'], data['indices'],
-                                                                               data['indptr'], no_grids)
-            monthly_sum_min_maxtemp = monthly_sum_min_maxtemp + get_csr_matrix(data['min_maxtemp'], data['indices'],
-                                                                               data['indptr'], no_grids)
-            monthly_sum_max_maxtemp = monthly_sum_max_maxtemp + get_csr_matrix(data['max_maxtemp'], data['indices'],
-                                                                               data['indptr'], no_grids)
+            mon_arr = get_csr_matrix(data['transprob'], data['indices'], data['indptr'], no_grids).todense()
+            mon_arr[mon_arr > 0] = 1
+            monthly_sum_trans = monthly_sum_trans + mon_arr
+
+            mon_arr = get_csr_matrix(data['min_mintemp'], data['indices'], data['indptr'], no_grids).todense()
+            mon_arr[mon_arr == 0] = 999
+            monthly_min_mintemp = np.minimum(monthly_min_mintemp, mon_arr)
+            print(mon, "Min_minTemp", monthly_min_mintemp.min(), monthly_min_mintemp.max())
+
+            mon_arr = get_csr_matrix(data['max_mintemp'], data['indices'], data['indptr'], no_grids).todense()
+            mon_arr[mon_arr == 0] = -999
+            monthly_max_mintemp = np.maximum(monthly_max_mintemp, mon_arr)
+
+            mon_arr = get_csr_matrix(data['min_maxtemp'], data['indices'], data['indptr'], no_grids).todense()
+            mon_arr[mon_arr == 0] = 999
+            monthly_min_maxtemp = np.minimum(monthly_min_maxtemp, mon_arr)
+
+            mon_arr = get_csr_matrix(data['max_maxtemp'], data['indices'], data['indptr'], no_grids).todense()
+            mon_arr[mon_arr == 0] = -999
+            monthly_max_maxtemp = np.maximum(monthly_max_maxtemp, mon_arr)
+            print(mon, "Max_maxTemp", monthly_max_maxtemp.min(), monthly_max_maxtemp.max())
+
             monthly_sum_avg_mintemp = monthly_sum_avg_mintemp + get_csr_matrix(data['avg_min_temp'], data['indices'],
                                                                                data['indptr'], no_grids)
             monthly_sum_avg_maxtemp = monthly_sum_avg_maxtemp + get_csr_matrix(data['avg_max_temp'], data['indices'],
                                                                                data['indptr'], no_grids)
 
-    compute_binary_matrix(monthly_sum_trans.todense(), no_grids)
+    monthly_min_mintemp[monthly_min_mintemp == 999] = 0
+    monthly_max_mintemp[monthly_max_mintemp == -999] = 0
+    monthly_min_maxtemp[monthly_min_maxtemp == 999] = 0
+    monthly_max_maxtemp[monthly_max_maxtemp == -999] = 0
+
+    # verify the shape of all files is same
+    assert np.array_equal(monthly_sum_trans.nonzero(), monthly_max_mintemp.nonzero())
+    assert np.array_equal(monthly_min_mintemp.nonzero(), monthly_max_mintemp.nonzero())
+    assert np.array_equal(monthly_min_mintemp.nonzero(), monthly_min_maxtemp.nonzero())
+    assert np.array_equal(monthly_max_maxtemp.nonzero(), monthly_min_maxtemp.nonzero())
+    assert np.array_equal(monthly_sum_avg_mintemp.todense().nonzero(), monthly_max_maxtemp.nonzero())
+    assert np.array_equal(monthly_sum_avg_maxtemp.todense().nonzero(), monthly_max_mintemp.nonzero())
+
     # remaining without the new column(8244) and deleted(8245)
-    nnz_count_matrix = monthly_sum_trans.todense()[:, :no_grids]
-    nnz_count_matrix[nnz_count_matrix == 0] = 1
-    compute_grid_nnz_average(monthly_sum_min_mintemp.todense()[:, :no_grids], nnz_count_matrix, 'min_MinTemperature')
-    compute_grid_nnz_average(monthly_sum_max_mintemp.todense()[:, :no_grids], nnz_count_matrix, 'max_MinTemperature')
-    compute_grid_nnz_average(monthly_sum_min_maxtemp.todense()[:, :no_grids], nnz_count_matrix, 'min_MaxTemperature')
-    compute_grid_nnz_average(monthly_sum_max_maxtemp.todense()[:, :no_grids], nnz_count_matrix, 'max_MaxTemperature')
+    save_matrix(monthly_min_mintemp[:, :no_grids], 'min_MinTemperature')
+    save_matrix(monthly_max_mintemp[:, :no_grids], 'max_MinTemperature')
+    save_matrix(monthly_min_maxtemp[:, :no_grids], 'min_MaxTemperature')
+    save_matrix(monthly_max_maxtemp[:, :no_grids], 'max_MaxTemperature')
+
+    nnz_count_matrix = monthly_sum_trans[:, :no_grids]
+    print(np.min(nnz_count_matrix), np.max(nnz_count_matrix))
+    # nnz_count_matrix[nnz_count_matrix == 0] = 1 cannot use this as it updates the array, avoiding division by zero instead
+
     compute_grid_nnz_average(monthly_sum_avg_mintemp.todense()[:, :no_grids], nnz_count_matrix, 'avg_MinTemperature')
     compute_grid_nnz_average(monthly_sum_avg_maxtemp.todense()[:, :no_grids], nnz_count_matrix, 'avg_MaxTemperature')
+
+    compute_binary_matrix(monthly_sum_trans, no_grids)
+    assert np.array_equal(monthly_sum_trans.nonzero(), monthly_max_mintemp.nonzero())
 
 
 if __name__ == '__main__':
