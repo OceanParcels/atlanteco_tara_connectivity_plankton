@@ -204,13 +204,13 @@ def get_probabilities_temperatures(g, s, d):
     return probs, np.around(temp_range, 2)
 
 
-def get_shortest_paths_subset(g, s, d):
+def get_shortest_paths_subset(g, s, d, max_count):
     cnt = gt.count_shortest_paths(g, s, d)
     if cnt == 1:
         path = gt.random_shortest_path(g, s, d)
         return np.array([path])
-    elif cnt > 100:
-        count = 100
+    elif cnt > max_count:
+        count = max_count
     else:
         count = cnt
     paths = gt.random_shortest_path(g, s, d, nsamples=count)

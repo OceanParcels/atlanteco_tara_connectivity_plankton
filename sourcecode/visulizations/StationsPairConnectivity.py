@@ -11,8 +11,8 @@ from sourcecode.core import connectivityhelper as ch
 from sourcecode.visulizations import connectivityplots as cp
 
 hex_res = 3
-data_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task7D/'
-depth = 100
+data_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task8E/'
+depth = 0
 
 
 def single_min_T_path(atlantic_graph, mask_lons, mask_lats, mask_value, master_grids_list, s_index, source_code,
@@ -32,8 +32,8 @@ def single_min_T_path(atlantic_graph, mask_lons, mask_lats, mask_value, master_g
 
 def subset_min_T_paths(atlantic_graph, mask_lons, mask_lats, mask_value, master_grids_list, s_index, source_code,
                        d_index, destination_code):
-    forward_paths = ag.get_shortest_paths_subset(atlantic_graph, s_index, d_index)
-    backward_paths = ag.get_shortest_paths_subset(atlantic_graph, d_index, s_index)
+    forward_paths = ag.get_shortest_paths_subset(atlantic_graph, s_index, d_index, 1000)
+    backward_paths = ag.get_shortest_paths_subset(atlantic_graph, d_index, s_index, 1000)
     cp.plot_shortest_paths_subset(mask_lons, mask_lats, mask_value, master_grids_list, forward_paths, backward_paths,
                                   source_code, destination_code)
 
@@ -41,7 +41,7 @@ def subset_min_T_paths(atlantic_graph, mask_lons, mask_lats, mask_value, master_
 def main():
     source_code = '66SUR'
     destination_code = 'OA002'
-    domain_adjacency_file = 't{0}m/Annual_Avg_DomainAdjacency_csr.npz'.format(depth)
+    domain_adjacency_file = 't{0}m/Annual_Binary_DomainAdjacency_csr.npz'.format(depth)
 
     temp_constraint_range = np.NaN
     min_accept_temp = 11.85
@@ -75,9 +75,9 @@ def main():
     # (eg. a thermal range for a species)
     elif ~np.isnan(max_accept_temp) and ~np.isnan(min_accept_temp):
         atlantic_graph = ag.create_temp_min_max_graph(data_folder + domain_adjacency_file,
-                                                      data_folder + 't{0}m/Annual_Avg_MinTemperature_csr.npz'.format(
+                                                      data_folder + 't{0}m/Annual_min_MinTemperature_csr.npz'.format(
                                                           depth),
-                                                      data_folder + 't{0}m/Annual_Avg_MaxTemperature_csr.npz'.format(
+                                                      data_folder + 't{0}m/Annual_max_MaxTemperature_csr.npz'.format(
                                                           depth),
                                                       min_accept_temp, max_accept_temp, t_ratio_file)
     # simple graph, without any temperature boundaries
