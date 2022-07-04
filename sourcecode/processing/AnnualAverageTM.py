@@ -22,7 +22,8 @@ def save_matrix(matrix, matrix_type):
 
 
 def compute_grid_nnz_average(matrix, nnz_count_matrix, matrix_type):
-    avg_matrix = np.divide(matrix, nnz_count_matrix, out=np.zeros_like(matrix), where=nnz_count_matrix != 0)
+    avg_matrix = np.divide(matrix, nnz_count_matrix, out=np.zeros_like(matrix), where=nnz_count_matrix != 0,
+                           dtype=np.float32)
     # avg_matrix = matrix / nnz_count_matrix  avoiding division by zero
     save_matrix(avg_matrix, matrix_type)
 
@@ -39,7 +40,7 @@ def main():
     # no_grids = len(np.load('/Users/dmanral/Desktop/Analysis/TARA/Task8E/MasterHexList_Res3.npy').tolist())
     months = np.array(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
 
-    monthly_sum_trans = np.zeros((no_grids, no_grids + 2), dtype=np.float32)
+    monthly_sum_trans = np.zeros((no_grids, no_grids + 2), dtype=np.int32)
     monthly_min_mintemp = np.full((no_grids, no_grids + 2), 999, dtype=np.float32)
     monthly_max_mintemp = np.full((no_grids, no_grids + 2), -999, dtype=np.float32)
     monthly_min_maxtemp = np.full((no_grids, no_grids + 2), 999, dtype=np.float32)

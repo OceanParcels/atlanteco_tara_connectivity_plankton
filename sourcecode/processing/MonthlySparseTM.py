@@ -10,7 +10,7 @@ import pandas as pd
 from time import time
 import sourcecode.core.matrixhelper as mxh
 from scipy.sparse import csr_matrix
-from sklearn.preprocessing import normalize
+# from sklearn.preprocessing import normalize
 import os
 import sys
 
@@ -33,23 +33,23 @@ def compute_transition_matrix(mon, hex_indices, map_h3_to_mat, no_grids, sim_dep
     files = sorted(glob(home_folder + 'tara{0}m/FullTara_Res5_TS_1{1}*_dt600_z{0}.nc'.format(sim_depth, mon)))
     assert len(files) == SIM_PER_MONTH
 
-    trans_array = np.empty(0)
-    rows_array = np.empty(0)
-    cols_array = np.empty(0)
+    trans_array = np.empty(0, dtype=np.int32)
+    rows_array = np.empty(0, dtype=np.int32)
+    cols_array = np.empty(0, dtype=np.int32)
 
-    min_Mintemp_array = np.full((no_grids, no_grids + 2), 999, dtype='float32')
-    max_Mintemp_array = np.full((no_grids, no_grids + 2), -999, dtype='float32')
-    min_Maxtemp_array = np.full((no_grids, no_grids + 2), 999, dtype='float32')
-    max_Maxtemp_array = np.full((no_grids, no_grids + 2), -999, dtype='float32')
-    Mintemp_array = np.empty(0)
-    Maxtemp_array = np.empty(0)
+    min_Mintemp_array = np.full((no_grids, no_grids + 2), 999, dtype=np.float32)
+    max_Mintemp_array = np.full((no_grids, no_grids + 2), -999, dtype=np.float32)
+    min_Maxtemp_array = np.full((no_grids, no_grids + 2), 999, dtype=np.float32)
+    max_Maxtemp_array = np.full((no_grids, no_grids + 2), -999, dtype=np.float32)
+    Mintemp_array = np.empty(0, dtype=np.float32)
+    Maxtemp_array = np.empty(0, dtype=np.float32)
 
-    min_Minsal_array = np.full((no_grids, no_grids + 2), 999, dtype='float32')
-    max_Minsal_array = np.full((no_grids, no_grids + 2), -999, dtype='float32')
-    min_Maxsal_array = np.full((no_grids, no_grids + 2), 999, dtype='float32')
-    max_Maxsal_array = np.full((no_grids, no_grids + 2), -999, dtype='float32')
-    Minsal_array = np.empty(0)
-    Maxsal_array = np.empty(0)
+    min_Minsal_array = np.full((no_grids, no_grids + 2), 999, dtype=np.float32)
+    max_Minsal_array = np.full((no_grids, no_grids + 2), -999, dtype=np.float32)
+    min_Maxsal_array = np.full((no_grids, no_grids + 2), 999, dtype=np.float32)
+    max_Maxsal_array = np.full((no_grids, no_grids + 2), -999, dtype=np.float32)
+    Minsal_array = np.empty(0, dtype=np.float32)
+    Maxsal_array = np.empty(0, dtype=np.float32)
 
     delete_count = 0
 
@@ -196,6 +196,11 @@ def compute_transition_matrix(mon, hex_indices, map_h3_to_mat, no_grids, sim_dep
 
     print(
         "-------------------------------\nMonth: %s- \nTotalNumber of connections: %d" % (mon, mon_trans_matrix.sum()))
+
+    # perform row normalization for transitions and confirm order
+    # norm_matrix = normalize(mon_trans_matrix, 'l1', axis=1, copy=True)
+    # assert np.array_equal(norm_matrix.indptr, mon_min_temp_matrix.indptr)
+    # assert np.array_equal(norm_matrix.indices, mon_max_sal_matrix.indices)
 
     # Store Average or total number of transitions
     # compute the average min and max T/S for each grid cell
