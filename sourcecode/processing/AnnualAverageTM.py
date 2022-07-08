@@ -10,22 +10,22 @@ def get_csr_matrix(matrix_data, indices, indptr, no_grids):
     return csr_matrix((matrix_data, indices, indptr), shape=(no_grids, no_grids + 2))
 
 
-def compute_binary_matrix(matrix, no_grids):
+def compute_binary_matrix(matrix, no_grids, depth):
     matrix[matrix > 0] = 1
-    save_npz(home_folder + 'Annual_Binary_FullAdjacency_csr.npz', csr_matrix(matrix))
-    save_npz(home_folder + 'Annual_Binary_DomainAdjacency_csr.npz', csr_matrix(matrix[:, :no_grids]))
+    save_npz(home_folder + 'Annual_Binary_FullAdjacency_z{0}_csr.npz'.format(depth), csr_matrix(matrix))
+    save_npz(home_folder + 'Annual_Binary_DomainAdjacency_z{0}_csr.npz'.format(depth), csr_matrix(matrix[:, :no_grids]))
 
 
-def save_matrix(matrix, matrix_type):
+def save_matrix(matrix, matrix_type, depth):
     print(matrix_type, np.nanmin(matrix), np.nanmax(matrix), np.nanmean(matrix))
-    save_npz(home_folder + 'Annual_{0}_csr.npz'.format(matrix_type), csr_matrix(matrix))
+    save_npz(home_folder + 'Annual_{0}_z{1}_csr.npz'.format(matrix_type,depth), csr_matrix(matrix))
 
 
-def compute_grid_nnz_average(matrix, nnz_count_matrix, matrix_type):
+def compute_grid_nnz_average(matrix, nnz_count_matrix, matrix_type, depth):
     avg_matrix = np.divide(matrix, nnz_count_matrix, out=np.zeros_like(matrix), where=nnz_count_matrix != 0,
                            dtype=np.float32)
     # avg_matrix = matrix / nnz_count_matrix  avoiding division by zero
-    save_matrix(avg_matrix, matrix_type)
+    save_matrix(avg_matrix, matrix_type, depth)
 
 
 def main():
@@ -109,19 +109,19 @@ def main():
     assert np.array_equal(monthly_sum_avg_maxtemp.todense().nonzero(), monthly_max_mintemp.nonzero())
 
     # remaining without the new column(8244) and deleted(8245)
-    save_matrix(monthly_min_mintemp[:, :no_grids], 'min_MinTemperature')
-    save_matrix(monthly_max_mintemp[:, :no_grids], 'max_MinTemperature')
-    save_matrix(monthly_min_maxtemp[:, :no_grids], 'min_MaxTemperature')
-    save_matrix(monthly_max_maxtemp[:, :no_grids], 'max_MaxTemperature')
+    save_matrix(monthly_min_mintemp[:, :no_grids], 'min_MinTemperature', sim_depth)
+    save_matrix(monthly_max_mintemp[:, :no_grids], 'max_MinTemperature', sim_depth)
+    save_matrix(monthly_min_maxtemp[:, :no_grids], 'min_MaxTemperature', sim_depth)
+    save_matrix(monthly_max_maxtemp[:, :no_grids], 'max_MaxTemperature', sim_depth)
 
     nnz_count_matrix = monthly_sum_trans[:, :no_grids]
     print(np.min(nnz_count_matrix), np.max(nnz_count_matrix))
     # nnz_count_matrix[nnz_count_matrix == 0] = 1 cannot use this as it updates the array, avoiding division by zero instead
 
-    compute_grid_nnz_average(monthly_sum_avg_mintemp.todense()[:, :no_grids], nnz_count_matrix, 'avg_MinTemperature')
-    compute_grid_nnz_average(monthly_sum_avg_maxtemp.todense()[:, :no_grids], nnz_count_matrix, 'avg_MaxTemperature')
+    compute_grid_nnz_average(monthly_sum_avg_mintemp.todense()[:, :no_grids], nnz_count_matrix, 'avg_MinTemperature', sim_depth)
+    compute_grid_nnz_average(monthly_sum_avg_maxtemp.todense()[:, :no_grids], nnz_count_matrix, 'avg_MaxTemperature', sim_depth)
 
-    compute_binary_matrix(monthly_sum_trans, no_grids)
+    compute_binary_matrix(monthly_sum_trans, no_grids, sim_depth)
     assert np.array_equal(monthly_sum_trans.nonzero(), monthly_max_mintemp.nonzero())
 
 
