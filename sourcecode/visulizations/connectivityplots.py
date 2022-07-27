@@ -58,20 +58,22 @@ def plot_paths(x, y, c, master_hex_ids, forward_path, backward_path, f_time_laps
     plt.show()
 
 
-def plot_shortest_paths_subset(x, y, c, master_hex_ids, f_paths, b_paths, s_code, d_code):
-    fig = plt.figure(dpi=120)
+def plot_shortest_paths_subset(x, y, c, master_hex_ids, f_paths, b_paths, s_code, d_code, depth):
+    fig = plt.figure(dpi=120, figsize=(14, 12))
     ax = plt.axes()
     colormap = clr.ListedColormap(['grey', 'white'])
     # remove the first row and first column from the glamf/gphif to access points enclosed in the center
     ax.pcolormesh(x[0], y[0], c[0, 0, 1:, 1:], cmap=colormap)
     print("base map ready")
     # ax.set_title('Sample of Minimum Time Paths between station {0} and {1}'.format(s_code, d_code))
-    ax.set_title('Sample of Minimum Time Paths from {0} to {1}'.format(s_code, d_code))
+    ax.set_title('Random sample of Minimum Time Paths from {0} to {1}'.format(s_code, d_code))
 
-    def plot_path(path, color):
+    def plot_path(path, color, s, d):
         lats, lons = masterhex_to_latlon(master_hex_ids, path)
         ax.plot(lons, lats, color=color, linestyle='solid', alpha=0.3)
         ax.scatter(lons, lats, color=color, s=0.4)
+        ax.text(lons[0], lats[0], s, bbox=dict(facecolor='white', alpha=0.7, pad=0.2, edgecolor='none'), fontsize=15)
+        ax.text(lons[-1], lats[-1], d, bbox=dict(facecolor='white', alpha=0.7, pad=0.2, edgecolor='none'), fontsize=15)
 
     def get_cmap(n, name='hsv'):
         '''Returns a function that maps each index in 0, 1, ..., n-1 to a distinct
@@ -80,9 +82,29 @@ def plot_shortest_paths_subset(x, y, c, master_hex_ids, f_paths, b_paths, s_code
 
     # colors = get_cmap(len(paths))
     # [plot_path(paths[i], colors(i)) for i in range(len(paths))]
-    [plot_path(f_paths[i], 'blue') for i in range(len(f_paths))]
-    # [plot_path(b_paths[i], 'red') for i in range(len(b_paths))]
-    plt.show()
+    [plot_path(f_paths[i], 'blue', s_code, d_code) for i in range(len(f_paths))]
+    [plot_path(b_paths[i], 'red', d_code, s_code) for i in range(len(b_paths))]
+
+    textstr = '\n'.join((
+        r'[Time, paths count] at depth %d m' % (depth),
+        r'%s to %s: [%.2f years, %d]' % (s_code, d_code, round((len(f_paths[0]) - 1) / 12, 2), len(f_paths)),
+        r'%s to %s: [%.2f years, %d]' % (d_code, s_code, round((len(b_paths[0]) - 1) / 12, 2), len(b_paths))))
+
+    # these are matplotlib.patch.Patch properties
+    props = dict(boxstyle='square', facecolor='lemonchiffon', alpha=0.8)
+
+    # place a text box in upper left in axes coords
+    ax.text(0.55, 0.15, textstr, transform=ax.transAxes, fontsize=18,
+            verticalalignment='center', bbox=props)
+    ax.set_xlim(-95, 20)
+    ax.set_ylim(-90, 80)
+
+    # plt.show()
+    plt.savefig(
+        '/Users/dmanral/Desktop/Analysis/TARA/Task9B/PairPlots/{0}_{1}_z{2}_passive_1.png'.format(s_code, d_code,
+                                                                                                  depth),
+        bbox_inches='tight',
+        pad_inches=0.2)
 
 
 def plot_time_vs_transitions(master_hex_ids, path, time_laps, s, d):

@@ -1,12 +1,18 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 
-depth = 0
-species = "G_Sacculifer"
-dataset = '2011_lombard_forams'
-width_type = 'broad'
-home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task8E/Connectivities/{0}/t{1}m/'.format(dataset, depth)
+depth = 500
 
+dataset = 'NoConstraints'  # 'sample_constraints' 2011_lombard_forams
+width_type = 'passive'
+work_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task9B/'
+home_folder = work_folder + 'Connectivities/{0}/t{1}m/'.format(dataset, depth)
+species = 'NoConstraints'
+
+# species_info = pd.read_csv(work_folder + dataset + '.csv',
+#                            delimiter=';|,', keep_default_na=True, header=0, engine='python')
+# for species in species_info.Species:
 data = np.load(home_folder + '{2}/Stations_minT_connectivity_{0}z_{1}_{2}.npz'.format(depth, species, width_type),
                allow_pickle=True)
 codes = data['codes']
@@ -50,6 +56,6 @@ cbar = plt.colorbar(orientation='vertical')
 cbar.set_label('Minimum connectivity time (Years)', size=20)
 cbar.ax.tick_params(labelsize=20)
 # plt.show()
-plt.savefig(home_folder + "{2}/Stations_minT_connectivity_z{0}_{1}_{2}.pdf".format(depth, species, width_type),
+plt.savefig(home_folder + "{2}/Stations_minT_connectivity_z{0}_{1}_{2}.png".format(depth, species, width_type),
             bbox_inches='tight',
             pad_inches=0.2)

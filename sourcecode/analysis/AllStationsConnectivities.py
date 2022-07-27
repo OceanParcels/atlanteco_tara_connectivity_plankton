@@ -4,11 +4,12 @@ from sourcecode.core import adjacencygraph as ag
 from sourcecode.core import connectivityhelper as ch
 import os
 
-home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task8E/'
-out_folder = home_folder + 'Connectivities/2011_lombard_forams/'
+home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task9B/'
+dataset = 'NoConstraints'  # 'sample_constraints'  # 'NoConstraints'  '2011_lombard_forams'
+out_folder = home_folder + 'Connectivities/{0}/'.format(dataset)
 
 hex_res = 3
-depth = 0
+depth = 500
 
 
 def get_stationcode_hexes_mapping():
@@ -18,21 +19,24 @@ def get_stationcode_hexes_mapping():
 
 def full_connectivity(species, min_accept_temp, max_accept_temp, temp_constraint_range, len_stations,
                       final_stations_master_indices, final_stations_code, width_type):
-    domain_adjacency_file = 't{0}m/Annual_Binary_DomainAdjacency_csr.npz'.format(depth)
+    domain_adjacency_file = 't{0}m/Annual_Binary_DomainAdjacency_z{0}_csr.npz'.format(depth)
     # to add constraints to the connectivity
 
     if width_type == 'average':
-        min_temp_file = home_folder + 't{0}m/Annual_avg_MinTemperature_csr.npz'.format(depth)
-        max_temp_file = home_folder + 't{0}m/Annual_avg_MaxTemperature_csr.npz'.format(depth)
+        min_temp_file = home_folder + 't{0}m/Annual_avg_MinTemperature_z{0}_csr.npz'.format(depth)
+        max_temp_file = home_folder + 't{0}m/Annual_avg_MaxTemperature_z{0}_csr.npz'.format(depth)
     # elif width_type == 'narrow':
     #     min_temp_file = home_folder + 't{0}m/Annual_max_MinTemperature_csr.npz'.format(depth)
     #     max_temp_file = home_folder + 't{0}m/Annual_min_MaxTemperature_csr.npz'.format(depth)
     elif width_type == 'broad':
-        min_temp_file = home_folder + 't{0}m/Annual_min_MinTemperature_csr.npz'.format(depth)
-        max_temp_file = home_folder + 't{0}m/Annual_max_MaxTemperature_csr.npz'.format(depth)
+        min_temp_file = home_folder + 't{0}m/Annual_min_MinTemperature_z{0}_csr.npz'.format(depth)
+        max_temp_file = home_folder + 't{0}m/Annual_max_MaxTemperature_z{0}_csr.npz'.format(depth)
+    elif width_type == 'passive':
+        min_temp_file = None
+        max_temp_file = None
     else:
-        ValueError("width type is not recognized")
-
+        raise ValueError("width type is not recognized")
+    print(width_type)
     # create graph
     if ~np.isnan(temp_constraint_range):
         print('Temp range: ', temp_constraint_range)
@@ -48,9 +52,7 @@ def full_connectivity(species, min_accept_temp, max_accept_temp, temp_constraint
                                                       min_accept_temp, max_accept_temp)
 
     else:
-        atlantic_graph = ag.create_full_graph(home_folder + domain_adjacency_file,
-                                              min_temp_file,
-                                              max_temp_file)
+        atlantic_graph = ag.create_simple_graph(home_folder + domain_adjacency_file)
     # get min_T paths for all pairs- forward and backward- 2 d matrix.
     min_T_matrix = np.empty((len_stations, len_stations))
     min_T_matrix[:] = np.NAN
@@ -116,27 +118,27 @@ def main():
     # not use this as it sorts the results and return unique: np.in1d(master_hex_ids,stations_hex).nonzero()[0]
 
     # for no constraints- try any width setting- only makes use of Binary connectivity matrix.
-    # full_connectivity('NoConstraints', np.NAN, np.NAN, np.NAN, len(final_stations_hex), final_stations_master_indices,
-    #                   final_stations_code, 'average')
+    full_connectivity('NoConstraints', np.NAN, np.NAN, np.NAN, len(final_stations_hex), final_stations_master_indices,
+                      final_stations_code, 'passive')
 
-    species_info = pd.read_csv(home_folder + '2011_lombard_forams.csv',
-                               delimiter=';|,', header=0, engine='python')
-
-    print("AVERAGE WIDTH\n-----------------")
-    [full_connectivity(entry['Species'], entry['MinTemp'], entry['MaxTemp'], np.NAN, len(final_stations_hex),
-                       final_stations_master_indices, final_stations_code, 'average')
-     for index, entry in species_info.iterrows()]
-
-    # print("-----------------\nNARROW WIDTH\n-----------------")
-    # Not working - min_maxtemp-max_mintemp <0 hence, cannot work.
-    # [full_connectivity(entry['Species'], entry['MinTemp'], entry['MaxTemp'], np.NAN, len(final_stations_hex),
-    #                    final_stations_master_indices, final_stations_code, 'narrow')
+    # species_info = pd.read_csv(home_folder + dataset + '.csv',
+    #                            delimiter=';|,', keep_default_na=True, header=0, engine='python')
+    #
+    # print("AVERAGE WIDTH\n-----------------")
+    # [full_connectivity(entry['Species'], entry['MinTemp'], entry['MaxTemp'], entry['TRange'], len(final_stations_hex),
+    #                    final_stations_master_indices, final_stations_code, 'average')
     #  for index, entry in species_info.iterrows()]
-
-    print("-----------------\nBROAD WIDTH\n-----------------")
-    [full_connectivity(entry['Species'], entry['MinTemp'], entry['MaxTemp'], np.NAN, len(final_stations_hex),
-                       final_stations_master_indices, final_stations_code, 'broad')
-     for index, entry in species_info.iterrows()]
+    #
+    # # print("-----------------\nNARROW WIDTH\n-----------------")
+    # # Not working - min_maxtemp-max_mintemp <0 hence, cannot work.
+    # # [full_connectivity(entry['Species'], entry['MinTemp'], entry['MaxTemp'], np.NAN, len(final_stations_hex),
+    # #                    final_stations_master_indices, final_stations_code, 'narrow')
+    # #  for index, entry in species_info.iterrows()]
+    #
+    # print("-----------------\nBROAD WIDTH\n-----------------")
+    # [full_connectivity(entry['Species'], entry['MinTemp'], entry['MaxTemp'], entry['TRange'], len(final_stations_hex),
+    #                    final_stations_master_indices, final_stations_code, 'broad')
+    #  for index, entry in species_info.iterrows()]
 
 
 if __name__ == '__main__':

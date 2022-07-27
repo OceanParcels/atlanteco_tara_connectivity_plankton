@@ -1,29 +1,29 @@
 import numpy as np
 import pandas as pd
 
-dataset = '2011_Lombard_Species'
-depth = 0
-home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task7D/{0}/depth{1}m/'.format(dataset, depth)
+dataset ='sample_constraints'#'sample_constraints'# '2011_lombard_forams'
+depth = 100
+work_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task9B/'
+home_folder = work_folder + 'Connectivities/{0}/t{1}m/'.format(dataset, depth)
+width_type = 'average'
 
 # np.savez_compressed(home_folder + 'Stations_min-T_connectivity.npz', codes=final_stations_code, matrix=min_T_matrix)
-data = np.load(
-    '/Users/dmanral/Desktop/Analysis/TARA/Task4/Full_connectivity_output/' + 'Stations_min-T_connectivity_nan.npz',
-    allow_pickle=True)
+data = np.load(work_folder + 'Connectivities/Stations_minT_connectivity_{0}z_NoConstraints_broad.npz'.format(depth),
+               allow_pickle=True)
 codes = data['codes']
 original_matrix = data['matrix']
 print('maximum time: ', np.nanmax(original_matrix))
 
-
-
-species_info = pd.read_csv('/Users/dmanral/Desktop/Analysis/TARA/Task7D/{0}/'.format(dataset) + '2011_lombard_forams.csv',
+species_info = pd.read_csv(work_folder + dataset + '.csv',
                            delimiter=';|,', header=0)
 max_time = np.zeros(len(species_info))
 mean_fraction = np.empty(len(species_info))
 max_fraction = np.empty(len(species_info))
 
 for index, entry in species_info.iterrows():
-    data_new = np.load(home_folder + 'Stations_MinT_connectivity_{0}.npz'.format(entry['Species']),
-                       allow_pickle=True)
+    data_new = np.load(
+        home_folder + '{2}/Stations_minT_connectivity_{0}z_{1}_{2}.npz'.format(depth, entry['Species'], width_type),
+        allow_pickle=True)
 
     new_codes = data_new['codes']
     new_matrix = data_new['matrix']
@@ -42,4 +42,4 @@ species_info['MaxTimeMonths'] = max_time
 species_info['MeanFractionalChange'] = mean_fraction
 species_info['MaxFractionalChange'] = max_fraction
 
-species_info.to_csv(home_folder + 'FractionalChange.csv')
+species_info.to_csv(home_folder + 'FractionalChange_{0}_{1}z.csv'.format(width_type, depth))

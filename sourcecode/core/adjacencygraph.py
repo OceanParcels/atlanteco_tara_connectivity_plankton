@@ -101,13 +101,43 @@ def create_temp_min_max_graph(adjacency_file, min_temp_file, max_temp_file, min_
     min_temp_matrix = load_npz(min_temp_file).todense()
     max_temp_matrix = load_npz(max_temp_file).todense()
 
-    min_temp_filter = np.where(min_temp_matrix < min_temp_accept, 0, min_temp_matrix)
-    max_temp_filter = np.where(max_temp_matrix > max_temp_accept, 0, max_temp_matrix)
+    # type 1 : where the connection temperature range is a subset of species thermal niche- AND condition
+    # connections that always work
+    # min_temp_filter = np.where(min_temp_matrix < min_temp_accept, 0, min_temp_matrix)
+    # max_temp_filter = np.where(max_temp_matrix > max_temp_accept, 0, max_temp_matrix)
+    # t_matrix = np.multiply(min_temp_filter, max_temp_filter)
+    # filtered_matrix = np.multiply(t_matrix, adjacency_matrix)
+    # nnz_index = filtered_matrix.nonzero()
+    # print("type 1:\n mint_filter_count:", len(min_temp_filter.nonzero()[0]),
+    #       "maxt_filter_count:", len(max_temp_filter.nonzero()[0]))
+    # print('No. of connections(nnz prob): ', len(nnz_index[0]))
+    #    #
+    # # type 2 : where thermal niche is a subset of the connection temperature range- AND condition
+    # # connections that may not work all the time, but still connections possible
+    # yesfilter = np.where(np.logical_and(min_temp_matrix < min_temp_accept, max_temp_accept < max_temp_matrix))
+    # min_temp_filter = np.where(min_temp_matrix < min_temp_accept, min_temp_matrix, 0)
+    # max_temp_filter = np.where(max_temp_matrix > max_temp_accept, max_temp_matrix, 0)
+    # t_matrix = np.multiply(min_temp_filter, max_temp_filter)
+    # filtered_matrix = np.multiply(t_matrix, adjacency_matrix)
+    # nnz_index = filtered_matrix.nonzero()
+    # print("type 2:\n mint_filter_count:", len(min_temp_filter.nonzero()[0]),
+    #       "maxt_filter_count:", len(max_temp_filter.nonzero()[0]))
+    # print('No. of connections(nnz prob): ', len(nnz_index[0]))
+
+    # type 3 : where partial thermal niche is within connection temperature range- OR condition
+    min_temp_filter = np.where(min_temp_matrix < max_temp_accept, min_temp_matrix, 0)
+    max_temp_filter = np.where(max_temp_matrix > min_temp_accept, max_temp_matrix, 0)
+    print("type 3:\nmint_filter_count and range:", len(min_temp_filter.nonzero()[0]), np.min(min_temp_filter[np.nonzero(min_temp_filter)]),
+          np.max(min_temp_filter[np.nonzero(min_temp_filter)]),
+          "\nmaxt_filter_count and range:", len(max_temp_filter.nonzero()[0]), np.min(max_temp_filter[np.nonzero(max_temp_filter)]),
+          np.max(max_temp_filter[np.nonzero(max_temp_filter)]))
+
     t_matrix = np.multiply(min_temp_filter, max_temp_filter)
     filtered_matrix = np.multiply(t_matrix, adjacency_matrix)
-
     nnz_index = filtered_matrix.nonzero()
     print('No. of connections(nnz prob): ', len(nnz_index[0]))
+    assert len(nnz_index[0]) <= len(adjacency_matrix.nonzero()[0])
+
     weights = adjacency_matrix[nnz_index]
     min_temp = min_temp_matrix[nnz_index]
     max_temp = max_temp_matrix[nnz_index]
@@ -178,18 +208,18 @@ def get_path_probabilities(g, path):
     return probs
 
 
-def get_shortest_path(g, s, d):
+def get_shortest_path(g, s, d, show_path=False):
     vlist, elist = gt.shortest_path(g, s, d)
     path = [int(v) for v in vlist]
-    # if path:
-    #     print(len(path))
-    #     print(path)
-    #     get_path_probabilities(g, path)
-    #     try:
-    #         temp_range = [(g.ep['min_t'][e], g.ep['max_t'][e]) for e in elist]
-    #         print(np.around(temp_range, 2))
-    #     except KeyError:
-    #         print("Temperature not included in the graph")
+    if path and show_path:
+        print(len(path))
+        print(path)
+        get_path_probabilities(g, path)
+        try:
+            temp_range = [(g.ep['min_t'][e], g.ep['max_t'][e]) for e in elist]
+            print(np.around(temp_range, 2))
+        except KeyError:
+            print("Temperature not included in the graph")
     return path
 
 
@@ -206,6 +236,7 @@ def get_probabilities_temperatures(g, s, d):
 
 def get_shortest_paths_subset(g, s, d, max_count):
     cnt = gt.count_shortest_paths(g, s, d)
+    print('existing paths count: ', cnt)
     if cnt == 1:
         path = gt.random_shortest_path(g, s, d)
         return np.array([path])
@@ -214,7 +245,6 @@ def get_shortest_paths_subset(g, s, d, max_count):
     else:
         count = cnt
     paths = gt.random_shortest_path(g, s, d, nsamples=count)
-    # print('paths computed. Count: ', count)
     return np.array(paths, dtype=int)
 
 
