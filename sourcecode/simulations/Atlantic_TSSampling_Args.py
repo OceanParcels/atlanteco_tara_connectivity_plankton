@@ -106,7 +106,7 @@ assert simulation_end <= modeldata_end
 
 fieldset = FieldSet.from_nemo(filenames, variables, dimensions, indices={'depth': [min_ind, max_ind]}, chunksize=False)
 
-coords = pd.read_csv(r'/nethome/manra003/data/Nemo_H3Release_LatLon_Res5.csv')
+coords = np.load('/nethome/manra003/analysis/paper01/H3_Res5_release_points.npz')
 
 
 class Particle(JITParticle):
@@ -123,8 +123,8 @@ else:
 
 pset = ParticleSet.from_list(fieldset=fieldset,
                              pclass=Particle,
-                             lon=coords['Longitudes'],
-                             lat=coords['Latitudes'],
+                             lon=coords['Longitude'],
+                             lat=coords['Latitude'],
                              depth=depth_arg,
                              time=simulation_start)
 
