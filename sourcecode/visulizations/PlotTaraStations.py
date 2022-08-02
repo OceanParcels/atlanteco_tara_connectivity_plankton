@@ -4,6 +4,7 @@ import numpy as np
 import xarray as xr
 import matplotlib.colors as clr
 import h3
+from matplotlib.lines import Line2D
 
 home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task4/'
 hex_res = 4
@@ -52,10 +53,28 @@ plt.tick_params(axis='both', which='major', labelsize=10)
 ax.set_xlabel("Longitude(°)")
 ax.set_ylabel("Latitude(°)")
 # remove the first row and first column from the glamf/gphif to access points enclosed in the center
-ax.pcolormesh(x[0], y[0], c[0, 0, 1:, 1:], cmap=colormap)
-# plt.show()
-ax.scatter(lon[oa_ind], lat[oa_ind], c='b', s=5)
-ax.scatter(lon[sur_ind], lat[sur_ind], c='r', s=5)
+ax.pcolormesh(x[0], y[0], c[0, 0, 1:, 1:], cmap=colormap, label='Ocean model domain')
+
+seed_points = pd.read_csv(home_folder + 'Nemo_H3Release_LatLon_Res5.csv')
+release_lats = seed_points['Latitudes']
+release_lons = seed_points['Longitudes']
+
+ax.scatter(release_lons, release_lats, c='gold', s=0.1, alpha=0.7)
+
+oceans = ax.scatter(lon[sur_ind], lat[sur_ind], c='r', s=5,
+                    label='Tara Oceans and Tara Oceans Polar Circle (2009-2013)')
+print('SUR Stations: ', len(lon[sur_ind]))
+pacific = ax.scatter(lon[oa_ind], lat[oa_ind], c='b', s=5, label='Tara Pacific (2016-2018)')
+print('OA Stations: ', len(lon[oa_ind]))
+
+first_legend = plt.legend(handles=[oceans, pacific], loc='upper right')
+ax = plt.gca().add_artist(first_legend)
+
+custom_lines = [Line2D([0], [0], color='lightskyblue', lw=4),
+                Line2D([0], [0], color='gold', lw=4), ]
+plt.legend(custom_lines, ['Ocean model domain', 'Particles released'], loc='lower right')
+
+plt.show()
 
 # for i in range(len(lon)):
 #     xy = (lon[i], lat[i])
