@@ -15,7 +15,7 @@ import os
 import sys
 
 home_folder = '/nethome/manra003/sim_out/'
-data_folder = '/nethome/manra003/data/'
+data_folder = '/nethome/manra003/analysis/paper01/'
 export_folder = '/nethome/manra003/analysis/paper01/depths/'
 # home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task7D/'
 # data_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task7D/'
@@ -23,31 +23,31 @@ export_folder = '/nethome/manra003/analysis/paper01/depths/'
 
 SIM_PER_MONTH = 10
 NEW = 'new'
-DEL = 'deleted'
 parent_res = 3
 child_res = 5
 
 
 def compute_transition_matrix(mon, hex_indices, map_h3_to_mat, no_grids, sim_depth, output_path):
     t_mon1 = time()
-    files = sorted(glob(home_folder + 'tara{0}m/FullTara_Res5_TS_1{1}*_dt600_z{0}.nc'.format(sim_depth, mon)))
+    files = sorted(glob(home_folder + 'tara{0}m/FullTara_Res5_TS_1{1}*_dt600_z{0}.zarr'.format(sim_depth, mon)))
+    print(files)
     assert len(files) == SIM_PER_MONTH
 
     trans_array = np.empty(0, dtype=np.int32)
     rows_array = np.empty(0, dtype=np.int32)
     cols_array = np.empty(0, dtype=np.int32)
 
-    min_Mintemp_array = np.full((no_grids, no_grids + 2), 999, dtype=np.float32)
-    max_Mintemp_array = np.full((no_grids, no_grids + 2), -999, dtype=np.float32)
-    min_Maxtemp_array = np.full((no_grids, no_grids + 2), 999, dtype=np.float32)
-    max_Maxtemp_array = np.full((no_grids, no_grids + 2), -999, dtype=np.float32)
+    min_Mintemp_array = np.full((no_grids, no_grids + 1), 999, dtype=np.float32)
+    max_Mintemp_array = np.full((no_grids, no_grids + 1), -999, dtype=np.float32)
+    min_Maxtemp_array = np.full((no_grids, no_grids + 1), 999, dtype=np.float32)
+    max_Maxtemp_array = np.full((no_grids, no_grids + 1), -999, dtype=np.float32)
     Mintemp_array = np.empty(0, dtype=np.float32)
     Maxtemp_array = np.empty(0, dtype=np.float32)
 
-    min_Minsal_array = np.full((no_grids, no_grids + 2), 999, dtype=np.float32)
-    max_Minsal_array = np.full((no_grids, no_grids + 2), -999, dtype=np.float32)
-    min_Maxsal_array = np.full((no_grids, no_grids + 2), 999, dtype=np.float32)
-    max_Maxsal_array = np.full((no_grids, no_grids + 2), -999, dtype=np.float32)
+    min_Minsal_array = np.full((no_grids, no_grids + 1), 999, dtype=np.float32)
+    max_Minsal_array = np.full((no_grids, no_grids + 1), -999, dtype=np.float32)
+    min_Maxsal_array = np.full((no_grids, no_grids + 1), 999, dtype=np.float32)
+    max_Maxsal_array = np.full((no_grids, no_grids + 1), -999, dtype=np.float32)
     Minsal_array = np.empty(0, dtype=np.float32)
     Maxsal_array = np.empty(0, dtype=np.float32)
 
@@ -55,7 +55,9 @@ def compute_transition_matrix(mon, hex_indices, map_h3_to_mat, no_grids, sim_dep
 
     for file in files:
         ds = xr.open_dataset(file)
-        assert np.all(np.round(ds['z'][:, -1].values) == sim_depth)
+        nan_z = ds['z'][:, -1].values
+        
+        assert np.all(np.round(nan_z[~np.isnan(nan_z)]) == sim_depth)
         assert mxh.check_default_values(ds)
 
         invalid_indices = mxh.get_invalid_trajectories(ds)
@@ -73,7 +75,7 @@ def compute_transition_matrix(mon, hex_indices, map_h3_to_mat, no_grids, sim_dep
         # mask hex ids that are new
         hex_t1_new = np.where(np.isin(hex_t1, hex_indices), hex_t1, NEW)
         # mask hex ids in hex_t1_new that were deleted during the simulation
-        hex_t1_new = np.where(get_valid_data('time', -1) < np.max(ds['time'][:, -1].values), DEL, hex_t1_new)
+        # hex_t1_new = np.where(get_valid_data('time', -1) < np.max(ds['time'][:, -1].values), DEL, hex_t1_new)
 
         rows = map_h3_to_mat[hex_t0].values
         cols = map_h3_to_mat[hex_t1_new].values
@@ -130,7 +132,7 @@ def compute_transition_matrix(mon, hex_indices, map_h3_to_mat, no_grids, sim_dep
         Minsal_array = np.append(Minsal_array, min_sal_matrix.data)
         Maxsal_array = np.append(Maxsal_array, max_sal_matrix.data)
         t_prop2 = time()
-        print(t_prop2 - t_prop1)
+        print('time taken- ', t_prop2 - t_prop1)
         # endregion
     print("Total invalid trajectories removed: ", delete_count)
 
@@ -209,10 +211,10 @@ def compute_transition_matrix(mon, hex_indices, map_h3_to_mat, no_grids, sim_dep
         print('Min/Max average {0} {1}: {2} / {3}'.format(f_type, field, np.min(avg_field), np.max(avg_field)))
         return avg_field
 
-    new_index = np.where(mon_trans_matrix.indices == map_h3_to_mat[-2])[0]
-    print('new particles: ', np.sum(mon_trans_matrix.data[new_index]))
-    del_index = np.where(mon_trans_matrix.indices == map_h3_to_mat[-1])[0]
-    print('deleted particles: ', np.sum(mon_trans_matrix.data[del_index]))
+    new_index = np.where(mon_trans_matrix.indices == map_h3_to_mat[-1])[0]
+    print('new particle locations: ', np.sum(mon_trans_matrix.data[new_index]))
+    # del_index = np.where(mon_trans_matrix.indices == map_h3_to_mat[-1])[0]
+    # print('deleted particles: ', np.sum(mon_trans_matrix.data[del_index]))
 
     avg_min_temp_per_grid = get_avg_field_per_grid(mon_min_temp_matrix.data, 'minimum', 'temperature')
     avg_max_temp_per_grid = get_avg_field_per_grid(mon_max_temp_matrix.data, 'maximum', 'temperature')
@@ -248,11 +250,11 @@ def main():
     sim_depth = np.int32(args[1])
     assert 0 <= sim_depth <= 500
 
-    master_uni_hex = np.load(data_folder + 'MasterHexList_Res3.npy').tolist()
-    assert len(master_uni_hex) == 8243
+    master_uni_hex = np.load(data_folder + 'H3_Res3_MasterHexList.npz')['Res3_HexId'].tolist()
+    assert len(master_uni_hex) == 8191
 
-    no_particles = len(np.load(data_folder + 'AllRes5Children.npy'))
-    assert no_particles == 377583
+    no_particles = len(np.load(data_folder + 'H3_Res5_release_points.npz')['Latitude'])
+    assert no_particles == 375570
 
     no_grids = len(master_uni_hex)
 
