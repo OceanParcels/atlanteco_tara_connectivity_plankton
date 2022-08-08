@@ -3,11 +3,10 @@ from scipy.sparse import csr_matrix, save_npz
 import sys
 
 home_folder = '/nethome/manra003/analysis/paper01/depths/'
-# home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task8E/'
-
+data_folder= '/nethome/manra003/analysis/paper01/'
 
 def get_csr_matrix(matrix_data, indices, indptr, no_grids):
-    return csr_matrix((matrix_data, indices, indptr), shape=(no_grids, no_grids + 2))
+    return csr_matrix((matrix_data, indices, indptr), shape=(no_grids, no_grids + 1))
 
 
 def compute_binary_matrix(matrix, no_grids, depth):
@@ -36,17 +35,16 @@ def main():
     global home_folder
     home_folder = home_folder + 't{0}m/'.format(sim_depth)
 
-    no_grids = len(np.load('/nethome/manra003/data/MasterHexList_Res3.npy').tolist())
-    # no_grids = len(np.load('/Users/dmanral/Desktop/Analysis/TARA/Task8E/MasterHexList_Res3.npy').tolist())
+    no_grids = len(np.load(data_folder + 'H3_Res3_MasterHexList.npz')['Res3_HexId'].tolist())
     months = np.array(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
 
-    monthly_sum_trans = np.zeros((no_grids, no_grids + 2), dtype=np.int32)
-    monthly_min_mintemp = np.full((no_grids, no_grids + 2), 999, dtype=np.float32)
-    monthly_max_mintemp = np.full((no_grids, no_grids + 2), -999, dtype=np.float32)
-    monthly_min_maxtemp = np.full((no_grids, no_grids + 2), 999, dtype=np.float32)
-    monthly_max_maxtemp = np.full((no_grids, no_grids + 2), -999, dtype=np.float32)
-    monthly_sum_avg_mintemp = csr_matrix((no_grids, no_grids + 2), dtype=np.float32)
-    monthly_sum_avg_maxtemp = csr_matrix((no_grids, no_grids + 2), dtype=np.float32)
+    monthly_sum_trans = np.zeros((no_grids, no_grids + 1), dtype=np.int32)
+    monthly_min_mintemp = np.full((no_grids, no_grids + 1), 999, dtype=np.float32)
+    monthly_max_mintemp = np.full((no_grids, no_grids + 1), -999, dtype=np.float32)
+    monthly_min_maxtemp = np.full((no_grids, no_grids + 1), 999, dtype=np.float32)
+    monthly_max_maxtemp = np.full((no_grids, no_grids + 1), -999, dtype=np.float32)
+    monthly_sum_avg_mintemp = csr_matrix((no_grids, no_grids + 1), dtype=np.float32)
+    monthly_sum_avg_maxtemp = csr_matrix((no_grids, no_grids + 1), dtype=np.float32)
 
     # export all matrices to npz file
     # np.savez_compressed(output_path + 'CSR_{0}z{1}.npz'.format(mon, sim_depth),
