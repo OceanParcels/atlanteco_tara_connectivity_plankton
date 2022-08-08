@@ -1,5 +1,4 @@
 import netCDF4 as nc
-from glob import glob
 from parcels import FieldSet, ParticleSet, JITParticle, AdvectionRK4, Variable
 from datetime import timedelta, datetime
 import pandas as pd
@@ -12,31 +11,15 @@ import sys
 def delete_particle(particle, fieldset, time):
     particle.delete()
 
-
-# verify input parameters: arg1= Year, arg2= Month, arg3=Startday
+simulation_dt = 30 #(days: for how long to run the simulation)
+    
+# verify input parameters: arg1= Year, arg2= Month, arg3=Startday,arg4= simulation depth
 args = sys.argv
 assert len(args) == 5
 
 start_year = np.int32(args[1])
-assert 2009 <= start_year <= 2018
-
 start_mon = np.int32(args[2])
-assert 1 <= start_mon <= 12
-
 start_day = np.int32(args[3])
-assert 1 <= start_day <= 31
-
-# by default- changes only in case od 1-12-2018
-end_day = start_day
-
-if start_mon == 12:
-    if start_year == 2018:
-        raise ValueError('data unavailable for complete simulation.')
-    end_mon = 1
-    end_year = start_year + 1
-else:
-    end_mon = start_mon + 1
-    end_year = start_year
 
 # verify depth argument and assign the indices to load from the depth dimension
 r_depth = np.int32(args[4])
@@ -57,27 +40,15 @@ data_path = '/storage/shared/oceanparcels/input_data/NEMO16_CMCC/'
 mesh_mask = data_path + 'GLOB16L98_mesh_mask_atlantic.nc'
 
 simulation_start = datetime(start_year, start_mon, start_day, 12, 0, 0)
-simulation_end = datetime(end_year, end_mon, end_day, 12, 0, 0)
+days=[simulation_start+timedelta(days=i) for i in range(simulation_dt+1)]
 
-ufiles = sorted(glob(data_path + 'ROMEO.01_1d_uo_{0}{1}*_U.nc'. \
-                     format(simulation_start.strftime("%Y"), simulation_start.strftime("%m"))) + \
-                glob(data_path + 'ROMEO.01_1d_uo_{0}{1}*_U.nc'. \
-                     format(simulation_end.strftime("%Y"), simulation_end.strftime("%m"))))
 
-vfiles = sorted(glob(data_path + 'ROMEO.01_1d_vo_{0}{1}*_V.nc'. \
-                     format(simulation_start.strftime("%Y"), simulation_start.strftime("%m"))) + \
-                glob(data_path + 'ROMEO.01_1d_vo_{0}{1}*_V.nc'. \
-                     format(simulation_end.strftime("%Y"), simulation_end.strftime("%m"))))
-
-tfiles = sorted(glob(data_path + 'ROMEO.01_1d_thetao_{0}{1}*_T.nc'. \
-                     format(simulation_start.strftime("%Y"), simulation_start.strftime("%m"))) + \
-                glob(data_path + 'ROMEO.01_1d_thetao_{0}{1}*_T.nc'. \
-                     format(simulation_end.strftime("%Y"), simulation_end.strftime("%m"))))
-
-sfiles = sorted(glob(data_path + 'ROMEO.01_1d_so_{0}{1}*_T.nc'. \
-                     format(simulation_start.strftime("%Y"), simulation_start.strftime("%m"))) + \
-                glob(data_path + 'ROMEO.01_1d_so_{0}{1}*_T.nc'. \
-                     format(simulation_end.strftime("%Y"), simulation_end.strftime("%m"))))
+ufiles = [data_path + 'ROMEO.01_1d_uo_{0}{1}{2}_grid_U.nc'.format(d.strftime("%Y"),d.strftime("%m"),d.strftime("%d")) for d in days]
+vfiles = [data_path + 'ROMEO.01_1d_vo_{0}{1}{2}_grid_V.nc'.format(d.strftime("%Y"),d.strftime("%m"),d.strftime("%d")) for d in days]
+tfiles = [data_path + 'ROMEO.01_1d_thetao_{0}{1}{2}_grid_T.nc'.format(d.strftime("%Y"),d.strftime("%m"),d.strftime("%d")) for d in days]
+sfiles = [data_path + 'ROMEO.01_1d_so_{0}{1}{2}_grid_T.nc'.format(d.strftime("%Y"),d.strftime("%m"),d.strftime("%d")) for d in days]
+assert len(ufiles)==simulation_dt+1
+print(ufiles[0],ufiles[-1])
 
 filenames = {'U': {'lon': mesh_mask, 'lat': mesh_mask, 'depth': ufiles[0], 'data': ufiles},
              'V': {'lon': mesh_mask, 'lat': mesh_mask, 'depth': ufiles[0], 'data': vfiles},
@@ -91,18 +62,6 @@ variables = {'U': 'uo',
              'S': 'so'}
 
 dimensions = {'lon': 'glamf', 'lat': 'gphif', 'depth': 'depthu', 'time': 'time_counter'}
-
-u_file = nc.Dataset(ufiles[0])
-ticks = u_file['time_counter'][:][0]
-modeldata_start = datetime(1900, 1, 1) + timedelta(seconds=ticks)
-
-assert simulation_start >= modeldata_start
-
-u_file = nc.Dataset(ufiles[len(ufiles) - 1])
-ticks = u_file['time_counter'][:][0]
-modeldata_end = datetime(1900, 1, 1) + timedelta(seconds=ticks)
-
-assert simulation_end <= modeldata_end
 
 fieldset = FieldSet.from_nemo(filenames, variables, dimensions, indices={'depth': [min_ind, max_ind]}, chunksize=False)
 
@@ -119,7 +78,7 @@ class Particle(JITParticle):
 if r_depth == 0:
     depth_arg = None
 else:
-    depth_arg = [r_depth for i in range(len(coords))]
+    depth_arg = [r_depth for i in range(len(coords['Longitude']))]
 
 pset = ParticleSet.from_list(fieldset=fieldset,
                              pclass=Particle,
@@ -130,15 +89,16 @@ pset = ParticleSet.from_list(fieldset=fieldset,
 
 mon = simulation_start.strftime("%b")
 output_file = pset.ParticleFile(
-    name="/nethome/manra003/sim_out/tara{3}m/FullTara_Res5_TS_{0}{1}{2}_dt600_z{3}.nc".format(start_day, mon,
+    name="/nethome/manra003/sim_out/tara{3}m/FullTara_Res5_TS_{0}{1}{2}_dt600_z{3}.zarr".format(start_day, mon,
                                                                                               start_year,
                                                                                               r_depth),
-    outputdt=timedelta((simulation_end - simulation_start).days))
+#     outputdt=timedelta((simulation_end - simulation_start).days))
+    outputdt=timedelta(days=5))
 
 sample_kernel = pset.Kernel(SampleTSFields)
 
 pset.execute(AdvectionRK4 + sample_kernel,
-             endtime=simulation_end,
+             runtime=timedelta(days=simulation_dt),
              dt=600,
              output_file=output_file,
              recovery={ErrorCode.ErrorOutOfBounds: delete_particle})
