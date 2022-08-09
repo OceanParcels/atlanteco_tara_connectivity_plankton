@@ -50,24 +50,24 @@ def get_invalid_trajectories(ds):
     # static points analysis- points that did not change their position at all
     static_pts_index = \
         np.where(np.logical_and((ds['lat'][:, 0] == ds['lat'][:, -1]), (ds['lon'][:, 0] == ds['lon'][:, -1])))[0]
-    print("Static Points count: ", len(static_pts_index))
+#     print("Static Points count: ", len(static_pts_index))
 
     # all the deleted points get assigned values of nan for all the fields, hence need to remove it
     # using latest version of parcels deployment on lorenz-master branch- ~6-7 August 2022
     deleted_pts_index = np.where(np.logical_or(np.isnan(ds['lat'][:, -1]), np.isnan(ds['lon'][:, -1])))[0]
-    print("Deleted Points count: ", len(deleted_pts_index))
+#     print("Deleted Points count: ", len(deleted_pts_index))
     
     # points with 0 fields of temp or salinity
     maxsal_zero_index = np.where(ds['max_sal'][:, -1] == 0)[0]
-    print("Zero MAX Salinity count: ", len(maxsal_zero_index))
+#     print("Zero MAX Salinity count: ", len(maxsal_zero_index))
     minsal_zero_index = np.where(ds['min_sal'][:, -1] == 0)[0]
-    print("Zero MIN Salinity count: ", len(minsal_zero_index))
+#     print("Zero MIN Salinity count: ", len(minsal_zero_index))
     # only possible scenario is when a particle will get a lower salinity-when stuck
 
     maxtemp_zero_index = np.where(ds['max_temp'][:, -1] == 0)[0]
-    print("Zero MAX Temperature count: ", len(maxtemp_zero_index))
+#     print("Zero MAX Temperature count: ", len(maxtemp_zero_index))
     mintemp_zero_index = np.where(ds['min_temp'][:, -1] == 0)[0]
-    print("Zero MIN Temperature count: ", len(mintemp_zero_index))
+#     print("Zero MIN Temperature count: ", len(mintemp_zero_index))
     # here both scenarios are possible, particle with >0 min_temperature and <0 max_temp
     # it is possible to find unique scenarios when maz_temp was below 0 and hex
     # when it gets stuck the max_temp gets updated to zero
