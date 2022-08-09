@@ -1,4 +1,5 @@
-import graph_tool.all as gt
+import graph_tool as gt
+import graph_tool.topology as tp
 from scipy.sparse import load_npz, save_npz, csr_matrix
 import numpy as np
 
@@ -209,7 +210,7 @@ def get_path_probabilities(g, path):
 
 
 def get_shortest_path(g, s, d, show_path=False):
-    vlist, elist = gt.shortest_path(g, s, d)
+    vlist, elist = tp.shortest_path(g, s, d)
     path = [int(v) for v in vlist]
     if path and show_path:
         print(len(path))
@@ -235,7 +236,7 @@ def get_probabilities_temperatures(g, s, d):
 
 
 def get_shortest_paths_subset(g, s, d, max_count):
-    cnt = gt.count_shortest_paths(g, s, d)
+    cnt = tp.count_shortest_paths(g, s, d)
     print('existing paths count: ', cnt)
     if cnt == 1:
         path = gt.random_shortest_path(g, s, d)

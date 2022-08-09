@@ -20,3 +20,7 @@ def get_station_hexes_from_code(file, hex_res, s_code, d_code):
 def get_all_grids_hex_ids(file):
     master_uni_hex = np.load(file)  # for npy
     return master_uni_hex.tolist()
+
+
+def get_hexids(lat, lon, hex_res):
+    return h3.geo_to_h3(lat, lon, hex_res)
