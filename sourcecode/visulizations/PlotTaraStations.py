@@ -6,35 +6,12 @@ import matplotlib.colors as clr
 import h3
 from matplotlib.lines import Line2D
 
-home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task4/'
-hex_res = 4
-stations = pd.read_excel(home_folder + 'AllStations_Tara.xls', header=1)
+home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task11/'
+stations = pd.read_csv(home_folder + 'AtlanticStations.csv', header=0)
 lon = stations['Longitude']
 lat = stations['Latitude']
 code = stations['Station']
 
-data = np.load(home_folder + 'Full_connectivity_output/Stations_min-T_connectivity_nan_TR2deg.npz', allow_pickle=True)
-atlantic_codes = data['codes']
-
-oa_series = pd.Series(atlantic_codes).str.contains('OA')
-oa = atlantic_codes[oa_series]
-sur_series = pd.Series(atlantic_codes).str.contains('SUR')
-sur = atlantic_codes[sur_series]
-
-common, oa_ind, ar2_ind = np.intersect1d(code, oa, return_indices=True)
-common, sur_ind, ar2_ind = np.intersect1d(code, sur, return_indices=True)
-
-all_indices = np.append(sur_ind, oa_ind)
-lats = lat[all_indices].values
-lons = lon[all_indices].values
-# export stations list to file
-ds = pd.DataFrame({'Code': code[all_indices].values,
-                   'Latitude': lats,
-                   'Longitude': lons,
-                   'H3Id_res4': [h3.geo_to_h3(lat, lon, hex_res) for lat, lon in zip(lats, lons)]})
-ds.sort_values(by='Latitude').to_csv(home_folder + 'Tara_Stations_hexId_res4.csv', index=False)
-# Get mask land mask
-# we need to coordinates file to access the corner points - glamf/gphif
 model_mask_file = home_folder + 'GLOB16L98_mesh_mask_atlantic.nc'
 
 mask_ds = xr.open_dataset(model_mask_file, decode_times=False).load()
@@ -55,34 +32,24 @@ ax.set_ylabel("Latitude(°)")
 # remove the first row and first column from the glamf/gphif to access points enclosed in the center
 ax.pcolormesh(x[0], y[0], c[0, 0, 1:, 1:], cmap=colormap, label='Ocean model domain')
 
-seed_points = pd.read_csv(home_folder + 'Nemo_H3Release_LatLon_Res5.csv')
-release_lats = seed_points['Latitudes']
-release_lons = seed_points['Longitudes']
+seed_points = np.load(home_folder + 'H3_Res5_release_points.npz')
+release_lats = seed_points['Latitude']
+release_lons = seed_points['Longitude']
 
 ax.scatter(release_lons, release_lats, c='gold', s=0.1, alpha=0.7)
-
-oceans = ax.scatter(lon[sur_ind], lat[sur_ind], c='r', s=5,
-                    label='Tara Oceans and Tara Oceans Polar Circle (2009-2013)')
-print('SUR Stations: ', len(lon[sur_ind]))
-pacific = ax.scatter(lon[oa_ind], lat[oa_ind], c='b', s=5, label='Tara Pacific (2016-2018)')
-print('OA Stations: ', len(lon[oa_ind]))
-
-first_legend = plt.legend(handles=[oceans, pacific], loc='upper right')
-ax = plt.gca().add_artist(first_legend)
+st = ax.scatter(lon, lat, c='r', s=5, label='Sample stations')
 
 custom_lines = [Line2D([0], [0], color='lightskyblue', lw=4),
-                Line2D([0], [0], color='gold', lw=4), ]
+                Line2D([0], [0], color='gold', lw=4)]
 plt.legend(custom_lines, ['Ocean model domain', 'Particles released'], loc='lower right')
+# https://matplotlib.org/3.3.3/tutorials/intermediate/legend_guide.html#multiple-legends-on-the-same-axes
 
-plt.show()
+for i in range(len(lon)):
+    xy = (lon[i], lat[i])
+    ax.annotate('%s' % code[i], xy=xy, textcoords='data', bbox=dict(boxstyle='square,pad=5', fc='none', ec='none'))
 
-# for i in range(len(lon)):
-#     xy = (lon[i], lat[i])
-#     ax.annotate('(%s)' % code[i], xy=xy, textcoords='data')
-#     print('(%s)' % code[i])
+# plt.show()
+
 print('saving file')
-plt.savefig(home_folder + "TaraStations.jpeg", bbox_inches='tight',
+plt.savefig(home_folder + "StationsDomain.jpeg", bbox_inches='tight',
             pad_inches=0.5, dpi=300)
-# coords = {"Station": code, "Latitudes": lat, "Longitudes": lon}
-# df = pd.DataFrame(coords, columns=["Station", "Latitudes", "Longitudes"])
-# df.to_csv(home_folder + 'Tara_stations.csv', index=False)
