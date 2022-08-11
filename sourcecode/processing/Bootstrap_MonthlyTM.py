@@ -230,9 +230,7 @@ def main():
     assert 0 <= sim_depth <= 500
     
     init_state = np.int32(args[2])
-    assert init_state < 91
     end_state = np.int32(args[3])
-    assert end_state < 100
     
     master_uni_hex = np.load(data_folder + 'H3_Res3_MasterHexList.npz')['Res3_HexId'].tolist()
     
