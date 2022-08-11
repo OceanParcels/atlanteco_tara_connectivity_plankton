@@ -1,78 +1,53 @@
-"""
-Program to test how sensitive the connectivity time is to the number of released particles:
-Primary test based on surface connectivity without constraints
-Input- adjacency files from bootstrap runs
-Bootstrap runs without replacement (less than maximum number of particles).
-"""
 import pandas as pd
-import numpy as np
-from sourcecode.core import adjacencygraph as ag
-from sourcecode.core import connectivityhelper as ch
+import matplotlib.pyplot as plt
 
-
-home_folder = '/nethome/manra003/analysis/paper01/'
-hex_res = 3
-
-master_grids_list = np.load(home_folder + 'H3_Res3_MasterHexList.npz')['Res3_HexId'].tolist()
-
-stations = pd.read_csv(home_folder + 'AtlanticStations.csv', header=0)
-lon = stations['Longitude']
-lat = stations['Latitude']
-code = stations['Station']
-
-s = 1
-d = 9
-
-s_hex, d_hex = ch.get_hexids(lat[s], lon[s], hex_res), ch.get_hexids(lat[d], lon[d], hex_res)
-s_index, d_index = master_grids_list.index(s_hex), master_grids_list.index(d_hex)
-print(s_index,d_index)
-
-class Ensemble:
-
-    def __init__(self, size, state, fT, fP, bT, bP):
-        self.sample_size = size
-        self.ensemble_state = state
-        self.f_min_time = fT
-        self.f_min_path = fP
-        self.b_min_time = bT
-        self.b_min_path = bP
-
-    def to_dict(self):
-        return {
-            'Sample_size': self.sample_size,
-            'State': self.ensemble_state,
-            'F-minT': self.f_min_time,
-            'F-minP': self.f_min_path,
-            'B-minT': self.b_min_time,
-            'B-minP': self.b_min_path,
-
-        }
-
-states_count = 50
+# home_folder = '/nethome/manra003/analysis/paper01/'
+home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task11/BootEx/'
+states_count = 100
 sample_size = [5000, 10000, 50000, 100000, 200000, 300000]
 
+source = 1
+destination = 9
+state = 100
+max_particles = 375570
 
+fp = pd.read_csv(home_folder + 'FullPaths.csv')
+sd_pair = fp.loc[(fp['Source'] == source) & (fp['Destination'] == destination)]
+# for each pair of station
+# plot connectivity time sensitivity to number of particles
+fig, ax = plt.subplots(2, 1, sharex=True)
+# fig = plt.figure()
+fig.suptitle("Minimum connectivity time sensitivity to number of particles")
+fig.supxlabel('Bootstrap sample size')
+fig.supylabel('Connectivity time in years')
+# ax[0].set_xlim(0, max_particles)
+# ax[1].set_xlim(0, max_particles)
+
+# def plot_pair(index, color):
+#     ds = data_frame[(data_frame['Source'] == src_stations[index]) & (data_frame['Destination'] == des_stations[index])]
+#     ax[0, index].set(title='{0} to {1}'.format(src_stations[index], des_stations[index]))
+#     ax[0, index].plot(ds['Sample_size'], ds['Fw_time'], linestyle='--', marker='o', color=color)
+#
+#     ax[1, index].set(title='{0} to {1}'.format(des_stations[index], src_stations[index]))
+#     ax[1, index].plot(ds['Sample_size'], ds['Bw_time'], linestyle='--', marker='o', color=color)
+#     ax[1, index].set_xticks(ds['Sample_size'][1:])
+#     ax[1, index].set_xticklabels(ds['Sample_size'][1:], rotation=90, ha='center')
+#
+# #
+# [plot_pair(i, c) for i, c in zip(range(len(src_stations)), ['r', 'b', 'orange', 'green'])]
+# plt.show()
+
+
+# pd.read_csv(home_folder + 'Boot_Sample/outputs/EnsemblePaths_S{0}_D{1}_size{2}_en_{3}_z0.csv'.format(s, d, size, states_count))
 for size in sample_size:
-    ensemble_list = list()
-    for state in range(1, states_count + 1):
+    df = pd.read_csv(
+        home_folder + 'EnsemblePaths_S{0}_D{1}_size{2}_en_{3}_z0.csv'.format(source,
+                                                                             destination,
+                                                                             size,
+                                                                             states_count))
+    ax[0].scatter(df['Sample_size'], df['F-minT'] / 12, s=5, c='r', alpha=0.5, marker='o')
+    ax[1].scatter(df['Sample_size'], df['B-minT'] / 12, s=5, c='b', alpha=0.5, marker='o')
 
-        atlantic_graph = ag.create_simple_graph(
-            home_folder + 'Boot_Sample/Size_{0}/Annual/State_{1}/Annual_Binary_DomainAdjacency_z0_csr.npz'.format(size,
-                                                                                                                state),
-            None)
-            
-        forward_path = ag.get_shortest_path(atlantic_graph, s_index, d_index)
-        if forward_path:
-            f_time = len(forward_path) - 1
-        else:
-            f_time = -1
-        backward_path = ag.get_shortest_path(atlantic_graph, d_index, s_index)
-        if backward_path:
-            b_time = len(backward_path) - 1
-        else:
-            b_time = -1
-
-        ensemble_list.append(Ensemble(size, state, f_time, forward_path, b_time, backward_path))
-    # export to dataframe and save file
-    pd.DataFrame.from_records([e.to_dict() for e in ensemble_list]).to_csv(
-        home_folder + 'Boot_Sample/outputs/EnsemblePaths_S{0}_D{1}_size{2}_en_{3}_z0.csv'.format(s, d, size, states_count))
+ax[0].scatter(max_particles, sd_pair['F-minT'], s=7, c='r', marker='^')
+ax[1].scatter(max_particles, sd_pair['B-minT'], s=7, c='b', marker='^')
+plt.show()
