@@ -239,13 +239,13 @@ def get_shortest_paths_subset(g, s, d, max_count):
     cnt = tp.count_shortest_paths(g, s, d)
     print('existing paths count: ', cnt)
     if cnt == 1:
-        path = gt.random_shortest_path(g, s, d)
+        path = tp.random_shortest_path(g, s, d)
         return np.array([path])
     elif cnt > max_count:
         count = max_count
     else:
         count = cnt
-    paths = gt.random_shortest_path(g, s, d, nsamples=count)
+    paths = tp.random_shortest_path(g, s, d, nsamples=count)
     return np.array(paths, dtype=int)
 
 

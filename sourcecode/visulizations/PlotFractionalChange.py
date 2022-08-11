@@ -2,13 +2,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import pandas as pd
+import re
 
-depth = 0
+depth = 100
 dataset = 'sample_constraints'  # 'sample_constraints'  # '2011_lombard_forams'
-width_type = 'average'
-work_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task9B/'
+width_type = 'broad'
+work_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task11/'
 base_path = work_folder + 'Connectivities/{0}/t{1}m/{2}/'.format(dataset, depth,
                                                                  width_type)
+
 
 
 # depth2 = 0
@@ -35,7 +37,7 @@ def compute_fractional_change(original_matrix, species, codes):
     return fraction
 
 
-def plot_change(fraction, species, codes):
+def plot_change(fraction, species, codes, min_limit, limit):
     # Source: https://matplotlib.org/stable/gallery/images_contours_and_fields/image_annotated_heatmap.html#sphx-glr-gallery-images-contours-and-fields-image-annotated-heatmap-py
     # fig = plt.figure()
 
@@ -46,21 +48,21 @@ def plot_change(fraction, species, codes):
     plt.margins(0, 0)
     ax = plt.gca()
     ax.set_title("minimum: {0}%, maximum: {1}%".format(round(min_fraction, 2), round(max_fraction, 2)),
-                 pad=70)
+                 pad=70, fontsize=20)
     plt.suptitle("Average Fractional change for {2} at depth {0}m: {1}%".format(depth, np.round(avg, 2), species),
-                 size=20)
+                 fontsize=20)
 
-    ax.set_xlabel("Destination stations", labelpad=30)
-    ax.set_ylabel("Source stations", labelpad=30)
+    ax.set_xlabel("Destination stations", labelpad=30, fontsize=20)
+    ax.set_ylabel("Source stations", labelpad=30, fontsize=20)
     ax.set_xticks(np.arange(len(codes)))
     ax.set_yticks(np.arange(len(codes)))
     ax.set_xticklabels(codes)
     ax.set_yticklabels(codes)
-    plt.tick_params(axis='both', which='major', labelsize=7)
+    plt.tick_params(axis='both', which='major', labelsize=20)
 
     # Y axis labels on top
     ax.tick_params(top=True, bottom=False, labeltop=True, labelbottom=False)
-    plt.xticks(rotation=90)
+    # plt.xticks(rotation=90)
     # plt.setp(ax.get_xticklabels(), rotation=-30, ha="right", rotation_mode="anchor")
 
     # Turn spines off and create white grid.
@@ -70,34 +72,52 @@ def plot_change(fraction, species, codes):
     ax.grid(which="minor", color="w", linestyle='-', linewidth=1)
     ax.tick_params(which="minor", bottom=False, left=False)
 
-    # divnorm = colors.TwoSlopeNorm(vmin=-1, vcenter=0, vmax=max_fraction)
-    plt.imshow(fraction, cmap=plt.cm.plasma_r)
-
+    if min_limit:
+        divnorm = colors.TwoSlopeNorm(vmin=min_limit, vcenter=0, vmax=limit)
+        plt.imshow(fraction, cmap=plt.cm.coolwarm, norm=divnorm)
+    else:
+        plt.imshow(fraction, cmap=plt.cm.plasma_r)
+    # plt.clim(0, limit)
     cbar = plt.colorbar(orientation='vertical')
 
     cbar.set_label('Fractional change (%)', size=20)
     cbar.ax.tick_params(labelsize=20)
     # plt.show()
-    plt.savefig(base_path + "FractionalChange_z{0}m_{1}_{2}.png".format(depth, species, width_type),
-                bbox_inches='tight',
-                pad_inches=0.2)
+    if min_limit:
+        plt.savefig(
+            base_path + "FractionalChange_z{0}m_{1}_{2}_Fr{3}-{4}.png".format(depth, species, width_type, min_limit,
+                                                                              limit),
+            bbox_inches='tight',
+            pad_inches=0.2)
+    else:
+        plt.savefig(
+            base_path + "FractionalChange_z{0}m_{1}_{2}.png".format(depth, species, width_type),
+            bbox_inches='tight',
+            pad_inches=0.2)
 
 
 def main():
     # save format
     # np.savez_compressed(home_folder + 'Stations_min-T_connectivity.npz', codes=final_stations_code, matrix=min_T_matrix)
     data = np.load(
-        work_folder + 'Connectivities/Stations_minT_connectivity_{0}z_NoConstraints_passive.npz'.format(depth),
+        work_folder + 'Connectivities/Stations_minT_connectivity_0z_NoConstraints_passive.npz',
         allow_pickle=True)
     codes = data['codes']
     original_matrix = data['matrix']
     print('maximum time: ', np.nanmax(original_matrix))
-
+    TR_regexp = re.compile(r'TR_*')
+    AP_regexp = re.compile(r'AP_*')
     species_info = pd.read_csv(work_folder + dataset + '.csv',
                                delimiter=';|,', keep_default_na=True, header=0)
     for index, entry in species_info.iterrows():
         fr = compute_fractional_change(original_matrix, entry['Species'], codes)
-        plot_change(fr, entry['Species'], codes)
+        if TR_regexp.search(entry['Species']):
+            min_limit, limit = -45, 125
+        elif AP_regexp.search(entry['Species']):
+            min_limit, limit = -40, 410
+        else:
+            min_limit, limit = None, None
+        plot_change(fr, entry['Species'], codes, min_limit, limit)
 
 
 if __name__ == '__main__':
