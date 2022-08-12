@@ -15,7 +15,7 @@ def load_mask_file(file):
 
 
 def masterhex_to_latlon(master_hex_ids, path):
-    centers = [h3.h3_to_geo(master_hex_ids[ind]) for ind in path]
+    centers = [h3.h3_to_geo(str(master_hex_ids[ind])) for ind in path]
     lats = [x1[0] for x1 in centers]
     lons = [x1[1] for x1 in centers]
     return lats, lons
