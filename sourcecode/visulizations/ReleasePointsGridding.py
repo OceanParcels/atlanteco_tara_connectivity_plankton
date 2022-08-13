@@ -1,53 +1,39 @@
-import xarray as xr
+import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.colors as color
-import pandas as pd
 import h3
 from shapely.geometry.polygon import Polygon
 from matplotlib.ticker import EngFormatter
+from sourcecode.core import connectivityplots as cp
 
-
-home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task7D/'
-
-# we need to coordinates file to access the corner points - glamf/gphif
-model_mask_file = home_folder + 'GLOB16L98_mesh_mask_atlantic.nc'
-
-mask_ds = xr.open_dataset(model_mask_file, decode_times=False).load()
-print(mask_ds)
-# get the corner points to plot on the map
-x = mask_ds['glamf']
-print(x[0])
-y = mask_ds['gphif']
-print(y[0])
-
-# get the mask values of the corner points
-c = mask_ds['tmask'][:]
+home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task11/'
 
 # 1. seed points from the shapefiles and station locations
-seed_points = pd.read_csv(home_folder + 'Nemo_H3Release_LatLon_Res5.csv')
-lats = seed_points['Latitudes']
-lons = seed_points['Longitudes']
-res_id = seed_points['Res3_HexId']
-
-uni_lats = lats.unique()
-uni_lons = lons.unique()
-print(len(seed_points['Latitudes']), len(uni_lats), len(uni_lons))
+seed_points = np.load(home_folder + 'H3_Res5_release_points.npz')
+lats = seed_points['Latitude']
+lons = seed_points['Longitude']
+child_res = 5
+parent_res = 3
+res_id = pd.Series([h3.h3_to_parent(h3.geo_to_h3(lat, lon, child_res), parent_res) for lat, lon in
+                    zip(seed_points['Latitude'], seed_points['Longitude'])])
 
 # get points in a specific region
-gom_lats_index = np.where(np.logical_and(lats < 40, lats > 5))
-final_res3 = res_id.loc[gom_lats_index].unique()
+gom_lats_index = np.where(np.logical_and(lats < 35, lats > 5))[0]
+final_res3 = res_id.loc[gom_lats_index].values
 
 
 fig = plt.figure(dpi=150)
 ax = plt.axes()
+
+x, y, c = cp.load_mask_file(home_folder + 'GLOB16L98_mesh_mask_atlantic.nc')
 plt.tick_params(axis='both', which='major', labelsize=10)
 colormap = color.ListedColormap(['gainsboro', 'white'])
 
 # remove the first row and first column from the glamf/gphif to access points enclosed in the center
 ax.pcolormesh(x[0], y[0], c[0, 0, 1:, 1:], cmap=colormap)
 
-ax.scatter(lons, lats, s=0.1, c='blue')
+ax.scatter(lons[gom_lats_index], lats[gom_lats_index], s=0.1, c='blue')
 ax.yaxis.set_major_formatter(EngFormatter(unit=u"°N"))
 ax.xaxis.set_major_formatter(EngFormatter(unit=u"°W"))
 

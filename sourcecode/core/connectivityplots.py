@@ -15,7 +15,7 @@ def load_mask_file(file):
 
 
 def masterhex_to_latlon(master_hex_ids, path):
-    centers = [h3.h3_to_geo(master_hex_ids[ind]) for ind in path]
+    centers = [h3.h3_to_geo(str(master_hex_ids[ind])) for ind in path]
     lats = [x1[0] for x1 in centers]
     lons = [x1[1] for x1 in centers]
     return lats, lons
@@ -61,7 +61,7 @@ def plot_paths(x, y, c, master_hex_ids, forward_path, backward_path, f_time_laps
 def plot_shortest_paths_subset(x, y, c, master_hex_ids, f_paths, b_paths, s_code, d_code, depth):
     fig = plt.figure(dpi=120, figsize=(14, 12))
     ax = plt.axes()
-    colormap = clr.ListedColormap(['grey', 'white'])
+    colormap = clr.ListedColormap(['gainsboro', 'white'])
     # remove the first row and first column from the glamf/gphif to access points enclosed in the center
     ax.pcolormesh(x[0], y[0], c[0, 0, 1:, 1:], cmap=colormap)
     print("base map ready")
@@ -82,8 +82,8 @@ def plot_shortest_paths_subset(x, y, c, master_hex_ids, f_paths, b_paths, s_code
 
     # colors = get_cmap(len(paths))
     # [plot_path(paths[i], colors(i)) for i in range(len(paths))]
-    [plot_path(f_paths[i], 'blue', s_code, d_code) for i in range(len(f_paths))]
-    [plot_path(b_paths[i], 'red', d_code, s_code) for i in range(len(b_paths))]
+    [plot_path(f_paths[i], 'red', s_code, d_code) for i in range(len(f_paths))]
+    [plot_path(b_paths[i], 'blue', d_code, s_code) for i in range(len(b_paths))]
 
     textstr = '\n'.join((
         r'[Time, paths count] at depth %d m' % (depth),
@@ -94,14 +94,15 @@ def plot_shortest_paths_subset(x, y, c, master_hex_ids, f_paths, b_paths, s_code
     props = dict(boxstyle='square', facecolor='lemonchiffon', alpha=0.8)
 
     # place a text box in upper left in axes coords
-    ax.text(0.55, 0.15, textstr, transform=ax.transAxes, fontsize=18,
+    # 0.58 for 0m, 0.56 for 50m, 0.55 for 100m,
+    ax.text(0.56, 0.085, textstr, transform=ax.transAxes, fontsize=18,
             verticalalignment='center', bbox=props)
     ax.set_xlim(-95, 20)
-    ax.set_ylim(-90, 80)
+    ax.set_ylim(-78, 85)
 
     # plt.show()
     plt.savefig(
-        '/Users/dmanral/Desktop/Analysis/TARA/Task9B/PairPlots/{0}_{1}_z{2}_passive_1.png'.format(s_code, d_code,
+        '/Users/dmanral/Desktop/Analysis/TARA/Task11/PairPlots/{0}_{1}_z{2}_passive.png'.format(s_code, d_code,
                                                                                                   depth),
         bbox_inches='tight',
         pad_inches=0.2)

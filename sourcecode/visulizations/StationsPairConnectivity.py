@@ -5,14 +5,14 @@ Else you can give your stations locations too (needs some code edits to make thi
 """
 
 import numpy as np
-
-from sourcecode.core import adjacencygraph as ag
+import pandas as pd
+from sourcecode.core import adjacencygraph as ag, connectivityplots as cp
 from sourcecode.core import connectivityhelper as ch
-from sourcecode.visulizations import connectivityplots as cp
 
 hex_res = 3
-data_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task9B/'
+data_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task11/'
 depth = 50
+Tara = False
 
 
 def single_min_T_path(atlantic_graph, mask_lons, mask_lats, mask_value, master_grids_list, s_index, source_code,
@@ -35,12 +35,12 @@ def subset_min_T_paths(atlantic_graph, mask_lons, mask_lats, mask_value, master_
     forward_paths = ag.get_shortest_paths_subset(atlantic_graph, s_index, d_index, path_count)
     backward_paths = ag.get_shortest_paths_subset(atlantic_graph, d_index, s_index, path_count)
     cp.plot_shortest_paths_subset(mask_lons, mask_lats, mask_value, master_grids_list, forward_paths, backward_paths,
-                                  source_code, destination_code,depth)
+                                  source_code, destination_code, depth)
 
 
 def main():
-    source_code = '86SUR'
-    destination_code = '163SUR'
+    source_code = 1
+    destination_code = 9
     domain_adjacency_file = 't{0}m/Annual_Binary_DomainAdjacency_z{0}_csr.npz'.format(depth)
 
     temp_constraint_range = np.NaN
@@ -48,10 +48,18 @@ def main():
     max_accept_temp = np.nan
     width_type = 'passive'
     path_count = 1000
-    master_grids_list = ch.get_all_grids_hex_ids(data_folder + 'MasterHexList_Res3.npy')
+    master_grids_list = np.load(data_folder + 'H3_Res3_MasterHexList.npz')['Res3_HexId'].tolist()
 
-    s_hex, d_hex = ch.get_station_hexes_from_code(data_folder + 'AllStations_Tara.xls', hex_res, source_code,
-                                                  destination_code)
+    if Tara:
+        s_hex, d_hex = ch.get_station_hexes_from_code(data_folder + 'AllStations_Tara.xls', hex_res, source_code,
+                                                      destination_code)
+    else:
+        stations = pd.read_csv(data_folder + 'AtlanticStations.csv', header=0)
+        src = stations.loc[stations['Station'] == source_code]
+        des = stations.loc[stations['Station'] == destination_code]
+
+        s_hex = ch.get_hexids(src['Latitude'], src['Longitude'], hex_res)
+        d_hex = ch.get_hexids(des['Latitude'], des['Longitude'], hex_res)
     try:
         s_index, d_index = master_grids_list.index(s_hex), master_grids_list.index(d_hex)
     except KeyError:
@@ -61,9 +69,6 @@ def main():
     if width_type == 'average':
         min_temp_file = data_folder + 't{0}m/Annual_avg_MinTemperature_z{0}_csr.npz'.format(depth)
         max_temp_file = data_folder + 't{0}m/Annual_avg_MaxTemperature_z{0}_csr.npz'.format(depth)
-    # elif width_type == 'narrow':
-    #     min_temp_file = home_folder + 't{0}m/Annual_max_MinTemperature_csr.npz'.format(depth)
-    #     max_temp_file = home_folder + 't{0}m/Annual_min_MaxTemperature_csr.npz'.format(depth)
     elif width_type == 'broad':
         min_temp_file = data_folder + 't{0}m/Annual_min_MinTemperature_z{0}_csr.npz'.format(depth)
         max_temp_file = data_folder + 't{0}m/Annual_max_MaxTemperature_z{0}_csr.npz'.format(depth)
@@ -93,16 +98,6 @@ def main():
 
     mask_lons, mask_lats, mask_value = cp.load_mask_file(data_folder + 'GLOB16L98_mesh_mask_atlantic.nc')
 
-    # if minimum_time_omalley2021:
-    #     forward_path = ag.minimum_time_path_malley2021(atlantic_graph, s_index, d_index)
-    #     f_time_laps = ag.get_time_from_most_probable_path(atlantic_graph, forward_path)
-    #     cp.plot_time_vs_transitions(master_grids_list, forward_path, f_time_laps, source_code, destination_code)
-    #     backward_path = ag.minimum_time_path_malley2021(atlantic_graph, d_index, s_index)
-    #     b_time_laps = ag.get_time_from_most_probable_path(atlantic_graph, backward_path)
-    #     cp.plot_time_vs_transitions(master_grids_list, backward_path, b_time_laps, destination_code, source_code)
-    #     cp.plot_paths(mask_lons, mask_lats, mask_value, master_grids_list, forward_path, backward_path, f_time_laps,
-    #                   b_time_laps, source_code, destination_code, 'Minimum Travel Time')
-    # else:
     # single_min_T_path(atlantic_graph, mask_lons, mask_lats, mask_value, master_grids_list, s_index, source_code,
     #                   d_index, destination_code)
     subset_min_T_paths(atlantic_graph, mask_lons, mask_lats, mask_value, master_grids_list, s_index, source_code,
