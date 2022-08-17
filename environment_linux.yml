@@ -24,5 +24,4 @@ dependencies:
   - cgen
   - pymbolic
   - graph-tool
-  - jupyter
 prefix: /nethome/manra003/.conda/envs/taraenv
