@@ -18,12 +18,15 @@ master_grids_list = np.load(home_folder + 'H3_Res3_MasterHexList.npz')['Res3_Hex
 stations = pd.read_csv(home_folder + 'AtlanticStations.csv', header=0)
 lon = stations['Longitude']
 lat = stations['Latitude']
-code = stations['Station']
 
 s = 1
 d = 9
 
-s_hex, d_hex = ch.get_hexids(lat[s], lon[s], hex_res), ch.get_hexids(lat[d], lon[d], hex_res)
+source = stations.loc[stations['Station']==s]
+destination = stations.loc[stations['Station']==d]
+
+s_hex, d_hex = ch.get_hexids(source['Latitude'].values[0], source['Longitude'].values[0], hex_res), ch.get_hexids(destination['Latitude'].values[0], destination['Longitude'].values[0], hex_res)
+
 s_index, d_index = master_grids_list.index(s_hex), master_grids_list.index(d_hex)
 print(s_index,d_index)
 
@@ -48,7 +51,7 @@ class Ensemble:
 
         }
 
-states_count = 50
+states_count = 100
 sample_size = [5000, 10000, 50000, 100000, 200000, 300000]
 
 
