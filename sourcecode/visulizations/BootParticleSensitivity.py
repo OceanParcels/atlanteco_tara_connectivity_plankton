@@ -23,48 +23,52 @@ full_forward_time = 2.5
 full_backward_time = 1.83
 # for each pair of station
 # plot connectivity time sensitivity to number of particles
-fig, ax = plt.subplots(ncols=1, nrows=2, sharex=True,
-                       dpi=100, figsize=(10, 6))  # , subplot_kw={'projection': ccrs.PlateCarree()})
-fig.suptitle("Minimum connectivity time sensitivity to number of particles")
+fig, ax = plt.subplots(ncols=2, nrows=2, sharex=True,
+                       dpi=300, figsize=(16, 7))
+fig.suptitle("Minimum connectivity time from 100 ensembles")
 fig.supxlabel('Bootstrap sample size')
-# fig.supylabel('Minimum connectivity time (years)')
 
 count_paths = np.zeros((len(sample_size)))
 
-# pd.read_csv(home_folder + 'Boot_Sample/outputs/EnsemblePaths_S{0}_D{1}_size{2}_en_{3}_z0.csv'.format(s, d, size, states_count))
 for index, size in enumerate(sample_size):
     df = pd.read_csv(
         home_folder + 'BootEx/EnsemblePaths_S{0}_D{1}_size{2}_en_{3}_z0.csv'.format(source,
                                                                                     destination,
                                                                                     size,
                                                                                     states_count))
-    time = df['F-minT'].where(df['F-minT'] != -1) / 12
+    # forward paths
+    f_times = df['F-minT'].where(df['F-minT'] != -1) / 12
+    ax[0, 0].scatter(np.full_like(f_times, index), f_times, c='r', alpha=0.5, marker='o')
+    f_count = df['F-minT'].where(df['F-minT'] != -1).count()
+    ax[1, 0].bar(index, f_count, width=0.2, color='r')
 
-    ax[0].scatter(np.full_like(time, index), time, c='r', alpha=0.5, marker='o')
-    count = df['F-minT'].where(df['F-minT'] != -1).count()
-    ax[1].bar(index, count, width=0.2, color='r')
+    # backward paths
+    b_times = df['B-minT'].where(df['B-minT'] != -1) / 12
+    ax[0, 1].scatter(np.full_like(b_times, index), b_times, c='b', alpha=0.5, marker='o')
+    b_count = df['B-minT'].where(df['B-minT'] != -1).count()
+    ax[1, 1].bar(index, b_count, width=0.2, color='b')
 
-ax[0].set(title='Station {0} to {1}'.format(source, destination))
+ax[0, 0].set(title='From Station {0} to {1}'.format(source, destination))
+ax[0, 1].set(title='From Station {0} to {1}'.format(destination, source))
 
-ax[0].xaxis.set_ticks(range(len(sample_size)))
-ax[0].xaxis.set_ticklabels(sample_size)
-ax[1].xaxis.set_ticks(range(len(sample_size)))
-ax[1].xaxis.set_ticklabels(sample_size)
-# ax[1].scatter(df['Sample_size'], df['B-minT'].where(df['B-minT'] != -1) / 12, s=10, c='b', alpha=0.5, marker='o')
-# ax[1].scatter(df['Sample_size'], df['B-minT'].where((df['B-minT'] == -1)) + 1, s=10, edgecolors='b',
-#               alpha=0.5, marker='o', facecolors='none')
-# ax[1].set(title='Station {0} to {1}'.format(destination, source))
+ax[1, 0].xaxis.set_ticks(range(len(sample_size)))
+ax[1, 0].xaxis.set_ticklabels(sample_size, fontsize=10)
+ax[1, 1].xaxis.set_ticks(range(len(sample_size)))
+ax[1, 1].xaxis.set_ticklabels(sample_size, fontsize=10)
 
+ax[0, 0].axhline(full_forward_time, c='r', linestyle='--', alpha=0.6)
+ax[0, 1].axhline(full_backward_time, c='b', linestyle='--', alpha=0.6)
 
-# ax[0].axhline(full_forward_time, c='r', linestyle='--', alpha=0.6)
-# ax[1].axhline(full_backward_time, c='b', linestyle='--', alpha=0.6)
-ax[0].set_yticks(np.arange(2, 5))
-# ax[1].set_yticks(np.arange(0, 5))
-# ax[1].set_xticks(sample_size[1:])
-# ax[1].set_xticklabels(sample_size[1:], rotation=90, ha='center')
-# plt.savefig(home_folder + 'BootEx/Particles_sens_Station1-9.pdf', bbox_inches='tight',
-#             pad_inches=0.5)
-plt.show()
+t_labels = np.arange(1, 5)
+ax[0, 0].set_yticks(t_labels)
+ax[0, 0].set_ylabel('Minimum connectivity time \n(years)', fontsize=10)
+ax[0, 1].set_yticks(t_labels)
+ax[1, 0].set_ylabel('Paths returned (%)', fontsize=10)
+plt.subplots_adjust(hspace=0.05, wspace=0.1)
+plt.savefig(home_folder + 'BootEx/Particles_sens_Station1-9.pdf', bbox_inches='tight',
+            pad_inches=0.5)
+# plt.show()
+
 # region: plot-connetivity paths
 
 master_hex_ids = np.load(home_folder + 'H3_Res3_MasterHexList.npz')['Res3_HexId']
@@ -87,7 +91,7 @@ def plot_path(r_index, c_index, color, paths):
 
 
 fig, ax = plt.subplots(figsize=(16, 7), ncols=len(sample_size), nrows=2,
-                       sharex=True, subplot_kw={'projection': ccrs.PlateCarree()}, dpi=100)
+                       sharex=True, subplot_kw={'projection': ccrs.PlateCarree()}, dpi=300)
 
 for index, size in enumerate(sample_size):
     df = pd.read_csv(
@@ -109,11 +113,10 @@ for index, size in enumerate(sample_size):
                       bbox=dict(facecolor='white', alpha=0.8, pad=0.2, edgecolor='none'),
                       fontsize=10)
 
-# plt.subplots_adjust(wspace=0, hspace=0)
 ax[0, 0].set_ylabel('Minimum connectivity paths from station {0} to {1}'.format(source, destination))
 ax[1, 0].set_ylabel('Minimum connectivity paths from station {0} to {1}'.format(destination, source))
 plt.subplots_adjust(top=1, bottom=0.01, hspace=0.25, wspace=0.15)
-# plt.savefig(home_folder + 'BootEx/Min_paths_Station1-9.pdf', bbox_inches='tight',
-#             pad_inches=0.5)
-plt.show()
+plt.savefig(home_folder + 'BootEx/Min_paths_Station1-9.pdf', bbox_inches='tight',
+            pad_inches=0.5)
+# plt.show()
 # endregion
