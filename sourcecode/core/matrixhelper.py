@@ -19,6 +19,10 @@ def get_hexid_from_parent(lons, lats, child_res, parent_res):
     return np.array([h3.h3_to_parent(str(h), parent_res) for h in child_hex])
 
 
+def get_hexids(lons, lats, hex_res):
+    return np.array([h3.geo_to_h3(y, x, hex_res) for x, y in zip(lons, lats)])
+
+
 def get_coo_matrix(array, rows, cols, no_grids):
     matrix = coo_matrix((array, (rows, cols)), shape=(no_grids, no_grids + 1))
     matrix.sum_duplicates()
@@ -50,24 +54,24 @@ def get_invalid_trajectories(ds):
     # static points analysis- points that did not change their position at all
     static_pts_index = \
         np.where(np.logical_and((ds['lat'][:, 0] == ds['lat'][:, -1]), (ds['lon'][:, 0] == ds['lon'][:, -1])))[0]
-#     print("Static Points count: ", len(static_pts_index))
+    #     print("Static Points count: ", len(static_pts_index))
 
     # all the deleted points get assigned values of nan for all the fields, hence need to remove it
     # using latest version of parcels deployment on lorenz-master branch- ~6-7 August 2022
     deleted_pts_index = np.where(np.logical_or(np.isnan(ds['lat'][:, -1]), np.isnan(ds['lon'][:, -1])))[0]
-#     print("Deleted Points count: ", len(deleted_pts_index))
-    
+    #     print("Deleted Points count: ", len(deleted_pts_index))
+
     # points with 0 fields of temp or salinity
     maxsal_zero_index = np.where(ds['max_sal'][:, -1] == 0)[0]
-#     print("Zero MAX Salinity count: ", len(maxsal_zero_index))
+    #     print("Zero MAX Salinity count: ", len(maxsal_zero_index))
     minsal_zero_index = np.where(ds['min_sal'][:, -1] == 0)[0]
-#     print("Zero MIN Salinity count: ", len(minsal_zero_index))
+    #     print("Zero MIN Salinity count: ", len(minsal_zero_index))
     # only possible scenario is when a particle will get a lower salinity-when stuck
 
     maxtemp_zero_index = np.where(ds['max_temp'][:, -1] == 0)[0]
-#     print("Zero MAX Temperature count: ", len(maxtemp_zero_index))
+    #     print("Zero MAX Temperature count: ", len(maxtemp_zero_index))
     mintemp_zero_index = np.where(ds['min_temp'][:, -1] == 0)[0]
-#     print("Zero MIN Temperature count: ", len(mintemp_zero_index))
+    #     print("Zero MIN Temperature count: ", len(mintemp_zero_index))
     # here both scenarios are possible, particle with >0 min_temperature and <0 max_temp
     # it is possible to find unique scenarios when maz_temp was below 0 and hex
     # when it gets stuck the max_temp gets updated to zero
@@ -180,7 +184,6 @@ def binary_matrix(matrix):
     """
     return csr_matrix((np.ones(len(matrix.data)), matrix.indices, matrix.indptr),
                       shape=matrix.shape)
-
 
 # def avg_field_per_grid(f_data, t_data, f_type, field):
 #     avg_field = f_data / t_data
