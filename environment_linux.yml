@@ -22,6 +22,8 @@ dependencies:
   - tqdm
   - zarr
   - cgen
+  - cartopy
+  - cmocean
   - pymbolic
   - graph-tool
 prefix: /nethome/manra003/.conda/envs/taraenv
