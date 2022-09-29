@@ -10,14 +10,15 @@ from matplotlib import colors
 from matplotlib import cm
 
 depth1 = 0
-depth2 = 0
+depth2 = 500
 species = 'NoConstraints'
 width_type1 = 'passive'
 width_type2 = 'passive'
-home_folder1 = '/Users/dmanral/Desktop/Analysis/TARA/Task11/Connectivities/'
-home_folder2 = '/Users/dmanral/Desktop/Analysis/TARA/Task11/Res4/Connectivities/'
+home_folder1 = '/Users/dmanral/Desktop/Analysis/TARA/Task12/Connectivities/'
+home_folder2 = '/Users/dmanral/Desktop/Analysis/TARA/Task12/Connectivities/'
 
 dataset = 'NoConstraints'  # sample_constraints 2011_lombard_forams
+min_limit, max_limit = -50, 250
 
 
 def compute_fractional_change(base_matrix, matrix2):
@@ -67,7 +68,7 @@ def plot_change(fraction, species, codes, depth1, depth2, width_type1, width_typ
     ax.grid(which="minor", color="w", linestyle='-', linewidth=1)
     ax.tick_params(which="minor", bottom=False, left=False)
 
-    divnorm = colors.TwoSlopeNorm(vmin=-40, vcenter=0, vmax=35)
+    divnorm = colors.TwoSlopeNorm(vmin=min_limit, vcenter=0, vmax=max_limit)
 
     cmap = cm.get_cmap("coolwarm").copy()
     # cmap.set_bad('silver', 1.)
@@ -81,21 +82,21 @@ def plot_change(fraction, species, codes, depth1, depth2, width_type1, width_typ
     cbar.ax.tick_params(labelsize=20)
     # plt.show()
     plt.savefig(
-        home_folder2 + "{4}/t{0}m/FractionalChange_z{0}{1}_z{2}{3}_{5}_limit-40-35_g.png".format(depth2, width_type2,
-                                                                                                 depth1,
-                                                                                                 width_type1, dataset,
-                                                                                                 species),
+        home_folder2 + "{4}/t{0}m/FractionalChange_z{0}{1}_z{2}{3}_{5}_limit-50-250.png".format(depth2, width_type2,
+                                                                                                  depth1,
+                                                                                                  width_type1, dataset,
+                                                                                                  species),
         bbox_inches='tight',
         pad_inches=0.2)
 
 
 def main():
     data1 = np.load(
-        home_folder1 + '{0}/t{1}m/{2}/Stations_minT_connectivity_{1}z_{3}_{2}.npz'.format(dataset, depth1, width_type1,
-                                                                                          species), allow_pickle=True)
+        home_folder1 + '{0}/t{1}m/Stations_minT_connectivity_{1}z_{3}_{2}.npz'.format(dataset, depth1, width_type1,
+                                                                                      species), allow_pickle=True)
     data2 = np.load(
-        home_folder2 + '{0}/t{1}m/{2}/Stations_minT_connectivity_{1}z_{3}_{2}.npz'.format(dataset, depth2, width_type2,
-                                                                                          species), allow_pickle=True)
+        home_folder2 + '{0}/t{1}m/Stations_minT_connectivity_{1}z_{3}_{2}.npz'.format(dataset, depth2, width_type2,
+                                                                                      species), allow_pickle=True)
     codes = data1['codes']
     base_matrix = data1['matrix']
     # base_matrix[np.isnan(base_matrix)] = 1

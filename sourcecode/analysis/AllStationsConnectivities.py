@@ -9,7 +9,7 @@ from sourcecode.core import adjacencygraph as ag
 from sourcecode.core import connectivityhelper as ch
 import os
 
-home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task11/'
+home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task12/'
 dataset = 'NoConstraints'  # 'sample_constraints'  # 'NoConstraints'  '2011_lombard_forams'
 out_folder = home_folder + 'Connectivities/{0}/'.format(dataset)
 Tara = False

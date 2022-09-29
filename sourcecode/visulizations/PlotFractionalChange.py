@@ -5,9 +5,9 @@ import pandas as pd
 import re
 
 depth = 100
-dataset = 'sample_constraints'  # 'sample_constraints'  # '2011_lombard_forams'
+dataset = 'NoConstraints'  # 'sample_constraints'  # '2011_lombard_forams'
 width_type = 'broad'
-work_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task11/'
+work_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task12/'
 base_path = work_folder + 'Connectivities/{0}/t{1}m/{2}/'.format(dataset, depth,
                                                                  width_type)
 
@@ -22,7 +22,6 @@ def compute_fractional_change(original_matrix, species, codes):
     data_new = np.load(
         base_path + 'Stations_minT_connectivity_{0}z_{1}_{2}.npz'.format(depth, species, width_type),
         allow_pickle=True)
-    # data_new = np.load(home_folder + 'Stations_min-T_connectivity_nan_TR2deg.npz', allow_pickle=True)
 
     new_codes = data_new['codes']
     new_matrix = data_new['matrix']

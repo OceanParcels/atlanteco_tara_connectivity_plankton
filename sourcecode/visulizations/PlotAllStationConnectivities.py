@@ -6,7 +6,7 @@ depth = 0
 
 dataset = 'NoConstraints'  # 'sample_constraints' 2011_lombard_forams NoConstraints
 width_type = 'passive'
-work_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task11/'
+work_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task12/'
 home_folder = work_folder + 'Connectivities/{0}/t{1}m/'.format(dataset, depth)
 
 
@@ -20,7 +20,7 @@ def plot_connectivity(species):
     print(round(np.nanmin(final_matrix), 2), round(np.nanmax(final_matrix), 2))
 
     # Source: https://matplotlib.org/stable/gallery/images_contours_and_fields/image_annotated_heatmap.html#sphx-glr-gallery-images-contours-and-fields-image-annotated-heatmap-py
-    fig = plt.figure(figsize=(16, 14), dpi=200)
+    fig = plt.figure(figsize=(16, 14), dpi=300)
     plt.margins(0, 0)
     ax = plt.gca()
     ax.set_title(
@@ -53,7 +53,7 @@ def plot_connectivity(species):
     cbar.set_label('Minimum connectivity time (Years)', size=20)
     cbar.ax.tick_params(labelsize=20)
     # plt.show()
-    plt.savefig(home_folder + "{2}/Stations_minT_connectivity_z{0}_{1}_{2}.png".format(depth, species, width_type),
+    plt.savefig(home_folder + "Stations_minT_connectivity_z{0}_{1}_{2}.png".format(depth, species, width_type),
                 bbox_inches='tight',
                 pad_inches=0.2)
 
