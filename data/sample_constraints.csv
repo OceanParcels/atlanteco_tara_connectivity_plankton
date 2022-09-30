@@ -1,0 +1,7 @@
+Species,MinTemp,MaxTemp,TRange
+TN_Type1,15.0,25.0,nan
+TN_Type2,2.0,15.0,nan
+TN_Type3,10.0,30.0,nan
+AP_Type1,nan,nan,1.0
+AP_Type2,nan,nan,2.0
+AP_Type3,nan,nan,3.0
