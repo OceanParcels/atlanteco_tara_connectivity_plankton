@@ -1,20 +1,25 @@
+"""
+Code to extract minimum connectivity time from the transition matrices for all the station-pairs.
+Manually set the files, type of constraints, depth
+"""
+
 import pandas as pd
 import numpy as np
 from sourcecode.core import adjacencygraph as ag
 from sourcecode.core import connectivityhelper as ch
 import os
 
-home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task11/'
-dataset = 'sample_constraints'  # 'sample_constraints'  # 'NoConstraints'  '2011_lombard_forams'
+home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task12/'
+dataset = 'NoConstraints'  # 'sample_constraints'  # 'NoConstraints'  '2011_lombard_forams'
 out_folder = home_folder + 'Connectivities/{0}/'.format(dataset)
 Tara = False
 hex_res = 3
-depth = 100
+depth = 0
 
 
 def get_stationcode_hexes_mapping():
-    stations = pd.read_csv(home_folder + 'Tara_Stations_hexId_sorted.csv', header=0, index_col=0)
-    return stations.index.values, stations['H3Id_res3'].values
+    stations = pd.read_csv(home_folder + 'TaraStationsHexIdMapping.csv', header=0, index_col=0)
+    return stations.index.values, stations['Res3HexId'].values
 
 
 def full_connectivity(species, min_accept_temp, max_accept_temp, temp_constraint_range, len_stations,

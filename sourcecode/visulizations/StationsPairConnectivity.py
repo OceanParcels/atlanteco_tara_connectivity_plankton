@@ -2,6 +2,7 @@
 Tool to obtain connectivty path and timescales between a pair of Tara stations
 User must confirm the transition matrix file in use and that source and destination stations that exists in the list
 Else you can give your stations locations too (needs some code edits to make this transition smooth)
+Manually set the source/destination stations, depths, constraints.
 """
 
 import numpy as np
@@ -11,8 +12,9 @@ from sourcecode.core import connectivityhelper as ch
 
 hex_res = 3
 data_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task11/'
-depth = 50
+
 Tara = False
+width_type = 'broad'
 
 
 def single_min_T_path(atlantic_graph, mask_lons, mask_lats, mask_value, master_grids_list, s_index, source_code,
@@ -34,24 +36,31 @@ def subset_min_T_paths(atlantic_graph, mask_lons, mask_lats, mask_value, master_
                        d_index, destination_code, path_count, depth):
     forward_paths = ag.get_shortest_paths_subset(atlantic_graph, s_index, d_index, path_count)
     backward_paths = ag.get_shortest_paths_subset(atlantic_graph, d_index, s_index, path_count)
-    cp.plot_shortest_paths_subset(mask_lons, mask_lats, mask_value, master_grids_list, forward_paths, backward_paths,
-                                  source_code, destination_code, depth)
+    if np.size(forward_paths) != 0 and np.size(backward_paths) != 0:
+        print('forwardpath time years=', len(forward_paths[0]))
+        print('backwardpath time years=', len(backward_paths[0]))
+        cp.plot_shortest_paths_subset(mask_lons, mask_lats, mask_value, master_grids_list, forward_paths,
+                                      backward_paths,
+                                      source_code, destination_code, depth)
 
 
-def main():
-    source_code = 1
-    destination_code = 9
+def compute_paths(source_code, destination_code, depth, min_accept_temp, max_accept_temp, temp_constraint_range, mask_lons,
+              mask_lats, mask_value):
+
     domain_adjacency_file = 't{0}m/Annual_Binary_DomainAdjacency_z{0}_csr.npz'.format(depth)
 
-    temp_constraint_range = np.NaN
-    min_accept_temp = np.nan
-    max_accept_temp = np.nan
-    width_type = 'passive'
     path_count = 1000
-    master_grids_list = np.load(data_folder + 'H3_Res3_MasterHexList.npz')['Res3_HexId'].tolist()
+    if hex_res == 3:
+        master_grids_list = np.load(data_folder + 'H3_Res3_MasterHexList.npz')['Res3_HexId'].tolist()
+    elif hex_res == 2:
+        master_grids_list = np.load(data_folder + 'H3_Res2_MasterHexList.npz')['Res2_HexId'].tolist()
+    elif hex_res == 4:
+        master_grids_list = np.load(data_folder + 'H3_Res4_MasterHexList.npz')['Res4_HexId'].tolist()
+    else:
+        raise ValueError()
 
     if Tara:
-        s_hex, d_hex = ch.get_station_hexes_from_code(data_folder + 'AllStations_Tara.xls', hex_res, source_code,
+        s_hex, d_hex = ch.get_station_hexes_from_code(data_folder + 'AllStations_Tara.csv', hex_res, source_code,
                                                       destination_code)
     else:
         stations = pd.read_csv(data_folder + 'AtlanticStations.csv', header=0)
@@ -96,12 +105,24 @@ def main():
         atlantic_graph = ag.create_simple_graph(data_folder + domain_adjacency_file, None)
     print('Graph ready')
 
-    mask_lons, mask_lats, mask_value = cp.load_mask_file(data_folder + 'GLOB16L98_mesh_mask_atlantic.nc')
-
     # single_min_T_path(atlantic_graph, mask_lons, mask_lats, mask_value, master_grids_list, s_index, source_code,
     #                   d_index, destination_code)
     subset_min_T_paths(atlantic_graph, mask_lons, mask_lats, mask_value, master_grids_list, s_index, source_code,
                        d_index, destination_code, path_count, depth)
+
+
+def main():
+    src = [1]
+    des = [2]
+    depths = [0]
+    min_t = 7.85
+    max_t = 25.85
+    t_range = np.NaN
+    mask_lons, mask_lats, mask_value = cp.load_mask_file(data_folder + 'GLOB16L98_mesh_mask_atlantic.nc')
+    # mask_lons, mask_lats, mask_value =None,None,None
+    for s, d in zip(src, des):
+        for de in depths:
+            compute_paths(s, d, de, min_t, max_t, t_range, mask_lons, mask_lats, mask_value)
 
 
 if __name__ == '__main__':
