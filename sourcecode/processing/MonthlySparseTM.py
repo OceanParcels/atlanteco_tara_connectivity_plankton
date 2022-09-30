@@ -69,8 +69,7 @@ def compute_transition_matrix(mon, hex_indices, map_h3_to_mat, no_grids, sim_dep
         hex_t0 = mxh.get_hexid_from_parent(get_valid_data('lon', 0), get_valid_data('lat', 0), child_res,
                                            parent_res)
         # assert np.array_equal(hex_t0, master_all_hex_t0)
-        hex_t1 = mxh.get_hexid_from_parent(get_valid_data('lon', -1), get_valid_data('lat', -1), child_res,
-                                           parent_res)
+        hex_t1 = mxh.get_hexids(get_valid_data('lon', -1), get_valid_data('lat', -1), parent_res)
 
         # mask hex ids that are new
         hex_t1_new = np.where(np.isin(hex_t1, hex_indices), hex_t1, NEW)
@@ -250,9 +249,18 @@ def main():
     sim_depth = np.int32(args[1])
     assert 0 <= sim_depth <= 500
 
-    master_uni_hex = np.load(data_folder + 'H3_Res3_MasterHexList.npz')['Res3_HexId'].tolist()
-    assert len(master_uni_hex) == 8191
-
+    if parent_res == 3:
+        master_uni_hex = np.load(data_folder + 'H3_Res3_MasterHexList.npz')['Res3_HexId'].tolist()
+        assert len(master_uni_hex) == 8191
+    elif parent_res == 2:
+        master_uni_hex = np.load(data_folder + 'H3_Res2_MasterHexList.npz')['Res2_HexId'].tolist()
+        assert len(master_uni_hex) == 1260
+    elif parent_res == 4:
+        master_uni_hex = np.load(data_folder + 'H3_Res4_MasterHexList.npz')['Res4_HexId'].tolist()
+        assert len(master_uni_hex) == 54947
+    else:
+        raise ValueError('check parent_res')
+        
     no_particles = len(np.load(data_folder + 'H3_Res5_release_points.npz')['Latitude'])
     assert no_particles == 375570
 

@@ -19,6 +19,10 @@ def get_hexid_from_parent(lons, lats, child_res, parent_res):
     return np.array([h3.h3_to_parent(str(h), parent_res) for h in child_hex])
 
 
+def get_hexids(lons, lats, hex_res):
+    return np.array([h3.geo_to_h3(y, x, hex_res) for x, y in zip(lons, lats)])
+
+
 def get_coo_matrix(array, rows, cols, no_grids):
     matrix = coo_matrix((array, (rows, cols)), shape=(no_grids, no_grids + 1))
     matrix.sum_duplicates()
