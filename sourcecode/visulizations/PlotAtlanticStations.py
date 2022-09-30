@@ -23,7 +23,7 @@ y = mask_ds['gphif']
 # get the mask values of the corner points
 c = mask_ds['tmask'][:]
 
-fig = plt.figure(figsize=(8, 6))
+fig = plt.figure(figsize=(8, 6), dpi=500)
 ax = plt.axes()
 colormap = clr.ListedColormap(['whitesmoke', 'lightskyblue'])
 plt.tick_params(axis='both', which='major', labelsize=10)
@@ -45,11 +45,11 @@ plt.legend(custom_lines, ['Ocean model domain', 'Particles released'], loc='lowe
 # https://matplotlib.org/3.3.3/tutorials/intermediate/legend_guide.html#multiple-legends-on-the-same-axes
 
 for i in range(len(lon)):
-    xy = (lon[i], lat[i])
+    xy = (lon[i] + 0.5, lat[i])
     ax.annotate('%s' % code[i], xy=xy, textcoords='data', bbox=dict(boxstyle='square,pad=5', fc='none', ec='none'))
 
 # plt.show()
 
 print('saving file')
 plt.savefig(home_folder + "StationsDomain.jpeg", bbox_inches='tight',
-            pad_inches=0.5, dpi=300)
+            pad_inches=0.5)

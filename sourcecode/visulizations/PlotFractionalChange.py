@@ -4,18 +4,12 @@ from matplotlib import colors
 import pandas as pd
 import re
 
-depth = 100
-dataset = 'NoConstraints'  # 'sample_constraints'  # '2011_lombard_forams'
+depth = 0
+dataset = 'sample_constraints'  # 'sample_constraints'  # '2011_lombard_forams'
 width_type = 'broad'
 work_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task12/'
-base_path = work_folder + 'Connectivities/{0}/t{1}m/{2}/'.format(dataset, depth,
-                                                                 width_type)
-
-
-
-# depth2 = 0
-# home_folder1 = base_path + 'depth{0}m/'.format(depth1)
-# home_folder2 = base_path + 'depth{0}m/'.format(depth2)
+base_path = work_folder + 'Connectivities/{0}/t{1}m/'.format(dataset, depth)
+label_size = 25
 
 
 def compute_fractional_change(original_matrix, species, codes):
@@ -43,21 +37,21 @@ def plot_change(fraction, species, codes, min_limit, limit):
     avg = np.nanmean(fraction)
     min_fraction, max_fraction = np.nanmin(fraction), np.nanmax(fraction)
     print(min_fraction, max_fraction, avg)
-    fig = plt.figure(figsize=(16, 14), dpi=100)
+    fig = plt.figure(figsize=(16, 14), dpi=300)
     plt.margins(0, 0)
     ax = plt.gca()
     ax.set_title("minimum: {0}%, maximum: {1}%".format(round(min_fraction, 2), round(max_fraction, 2)),
-                 pad=70, fontsize=20)
+                 pad=70, fontsize=label_size)
     plt.suptitle("Average Fractional change for {2} at depth {0}m: {1}%".format(depth, np.round(avg, 2), species),
-                 fontsize=20)
+                 fontsize=label_size)
 
-    ax.set_xlabel("Destination stations", labelpad=30, fontsize=20)
-    ax.set_ylabel("Source stations", labelpad=30, fontsize=20)
+    ax.set_xlabel("Destination stations", labelpad=30, fontsize=label_size)
+    ax.set_ylabel("Source stations", labelpad=30, fontsize=label_size)
     ax.set_xticks(np.arange(len(codes)))
     ax.set_yticks(np.arange(len(codes)))
     ax.set_xticklabels(codes)
     ax.set_yticklabels(codes)
-    plt.tick_params(axis='both', which='major', labelsize=20)
+    plt.tick_params(axis='both', which='major', labelsize=label_size)
 
     # Y axis labels on top
     ax.tick_params(top=True, bottom=False, labeltop=True, labelbottom=False)
@@ -79,18 +73,18 @@ def plot_change(fraction, species, codes, min_limit, limit):
     # plt.clim(0, limit)
     cbar = plt.colorbar(orientation='vertical')
 
-    cbar.set_label('Fractional change (%)', size=20)
+    cbar.set_label('Fractional change (%)', size=label_size)
     cbar.ax.tick_params(labelsize=20)
     # plt.show()
     if min_limit:
         plt.savefig(
-            base_path + "FractionalChange_z{0}m_{1}_{2}_Fr{3}-{4}.png".format(depth, species, width_type, min_limit,
-                                                                              limit),
+            base_path + "FractionalChange_z{0}m_{1}_{2}_Fr{3}-{4}_g.png".format(depth, species, width_type, min_limit,
+                                                                                limit),
             bbox_inches='tight',
             pad_inches=0.2)
     else:
         plt.savefig(
-            base_path + "FractionalChange_z{0}m_{1}_{2}.png".format(depth, species, width_type),
+            base_path + "FractionalChange_z{0}m_{1}_{2}_g.png".format(depth, species, width_type),
             bbox_inches='tight',
             pad_inches=0.2)
 
@@ -104,7 +98,7 @@ def main():
     codes = data['codes']
     original_matrix = data['matrix']
     print('maximum time: ', np.nanmax(original_matrix))
-    TR_regexp = re.compile(r'TR_*')
+    TR_regexp = re.compile(r'TN_*')
     AP_regexp = re.compile(r'AP_*')
     species_info = pd.read_csv(work_folder + dataset + '.csv',
                                delimiter=';|,', keep_default_na=True, header=0)
@@ -113,7 +107,7 @@ def main():
         if TR_regexp.search(entry['Species']):
             min_limit, limit = -45, 125
         elif AP_regexp.search(entry['Species']):
-            min_limit, limit = -40, 410
+            min_limit, limit = -40, 390
         else:
             min_limit, limit = None, None
         plot_change(fr, entry['Species'], codes, min_limit, limit)
