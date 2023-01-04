@@ -4,12 +4,12 @@ from matplotlib import colors
 import pandas as pd
 import re
 
-depth = 0
+depth = 100
 dataset = 'sample_constraints'  # 'sample_constraints'  # '2011_lombard_forams'
 width_type = 'broad'
 work_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task12/'
 base_path = work_folder + 'Connectivities/{0}/t{1}m/'.format(dataset, depth)
-label_size = 25
+label_size = 30
 
 
 def compute_fractional_change(original_matrix, species, codes):
@@ -74,17 +74,17 @@ def plot_change(fraction, species, codes, min_limit, limit):
     cbar = plt.colorbar(orientation='vertical')
 
     cbar.set_label('Fractional change (%)', size=label_size)
-    cbar.ax.tick_params(labelsize=20)
+    cbar.ax.tick_params(labelsize=label_size)
     # plt.show()
     if min_limit:
         plt.savefig(
-            base_path + "FractionalChange_z{0}m_{1}_{2}_Fr{3}-{4}_g.png".format(depth, species, width_type, min_limit,
+            base_path + "FractionalChange_z{0}m_{1}_{2}_Fr{3}-{4}_new.png".format(depth, species, width_type, min_limit,
                                                                                 limit),
             bbox_inches='tight',
             pad_inches=0.2)
     else:
         plt.savefig(
-            base_path + "FractionalChange_z{0}m_{1}_{2}_g.png".format(depth, species, width_type),
+            base_path + "FractionalChange_z{0}m_{1}_{2}_new.png".format(depth, species, width_type),
             bbox_inches='tight',
             pad_inches=0.2)
 

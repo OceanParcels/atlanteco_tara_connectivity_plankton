@@ -93,7 +93,7 @@ def full_connectivity(species, min_accept_temp, max_accept_temp, temp_constraint
     # if not Tara:
     #     path = out_folder + 'SampleStations/' + 't{0}m/{1}/'.format(depth, width_type)
     # else:
-    path = out_folder + 't{0}m/{1}/'.format(depth, width_type)
+    path = out_folder + 't{0}m/'.format(depth)
     os.makedirs(path, exist_ok=True)
     np.savez_compressed(path + 'Stations_minT_connectivity_{0}z_{1}_{2}.npz'.format(depth, species, width_type),
                         codes=final_stations_code, matrix=min_T_matrix)

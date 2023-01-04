@@ -11,8 +11,9 @@ import sys
 def delete_particle(particle, fieldset, time):
     particle.delete()
 
-simulation_dt = 30 #(days: for how long to run the simulation)
-    
+
+simulation_dt = 30  # (days: for how long to run the simulation)
+
 # verify input parameters: arg1= Year, arg2= Month, arg3=Startday,arg4= simulation depth
 args = sys.argv
 assert len(args) == 5
@@ -40,15 +41,19 @@ data_path = '/storage/shared/oceanparcels/input_data/NEMO16_CMCC/'
 mesh_mask = data_path + 'GLOB16L98_mesh_mask_atlantic.nc'
 
 simulation_start = datetime(start_year, start_mon, start_day, 12, 0, 0)
-days=[simulation_start+timedelta(days=i) for i in range(simulation_dt+1)]
+days = [simulation_start + timedelta(days=i) for i in range(simulation_dt + 1)]
 
-
-ufiles = [data_path + 'ROMEO.01_1d_uo_{0}{1}{2}_grid_U.nc'.format(d.strftime("%Y"),d.strftime("%m"),d.strftime("%d")) for d in days]
-vfiles = [data_path + 'ROMEO.01_1d_vo_{0}{1}{2}_grid_V.nc'.format(d.strftime("%Y"),d.strftime("%m"),d.strftime("%d")) for d in days]
-tfiles = [data_path + 'ROMEO.01_1d_thetao_{0}{1}{2}_grid_T.nc'.format(d.strftime("%Y"),d.strftime("%m"),d.strftime("%d")) for d in days]
-sfiles = [data_path + 'ROMEO.01_1d_so_{0}{1}{2}_grid_T.nc'.format(d.strftime("%Y"),d.strftime("%m"),d.strftime("%d")) for d in days]
-assert len(ufiles)==simulation_dt+1
-print(ufiles[0],ufiles[-1])
+ufiles = [data_path + 'ROMEO.01_1d_uo_{0}{1}{2}_grid_U.nc'.format(d.strftime("%Y"), d.strftime("%m"), d.strftime("%d"))
+          for d in days]
+vfiles = [data_path + 'ROMEO.01_1d_vo_{0}{1}{2}_grid_V.nc'.format(d.strftime("%Y"), d.strftime("%m"), d.strftime("%d"))
+          for d in days]
+tfiles = [
+    data_path + 'ROMEO.01_1d_thetao_{0}{1}{2}_grid_T.nc'.format(d.strftime("%Y"), d.strftime("%m"), d.strftime("%d"))
+    for d in days]
+sfiles = [data_path + 'ROMEO.01_1d_so_{0}{1}{2}_grid_T.nc'.format(d.strftime("%Y"), d.strftime("%m"), d.strftime("%d"))
+          for d in days]
+assert len(ufiles) == simulation_dt + 1
+print(ufiles[0], ufiles[-1])
 
 filenames = {'U': {'lon': mesh_mask, 'lat': mesh_mask, 'depth': ufiles[0], 'data': ufiles},
              'V': {'lon': mesh_mask, 'lat': mesh_mask, 'depth': ufiles[0], 'data': vfiles},
@@ -90,9 +95,9 @@ pset = ParticleSet.from_list(fieldset=fieldset,
 mon = simulation_start.strftime("%b")
 output_file = pset.ParticleFile(
     name="/nethome/manra003/sim_out/tara{3}m/FullTara_Res5_TS_{0}{1}{2}_dt600_z{3}.zarr".format(start_day, mon,
-                                                                                              start_year,
-                                                                                              r_depth),
-#     outputdt=timedelta((simulation_end - simulation_start).days))
+                                                                                                start_year,
+                                                                                                r_depth),
+    #     outputdt=timedelta((simulation_end - simulation_start).days))
     outputdt=timedelta(days=5))
 
 sample_kernel = pset.Kernel(SampleTSFields)

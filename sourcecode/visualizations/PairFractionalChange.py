@@ -10,7 +10,7 @@ from matplotlib import colors
 from matplotlib import cm
 
 depth1 = 0
-depth2 = 500
+depth2 = 50
 species = 'NoConstraints'
 width_type1 = 'passive'
 width_type2 = 'passive'
@@ -19,6 +19,7 @@ home_folder2 = '/Users/dmanral/Desktop/Analysis/TARA/Task12/Connectivities/'
 
 dataset = 'NoConstraints'  # sample_constraints 2011_lombard_forams
 min_limit, max_limit = -50, 250
+custom_textsize = 35
 
 
 def compute_fractional_change(base_matrix, matrix2):
@@ -42,20 +43,20 @@ def plot_change(fraction, species, codes, depth1, depth2, width_type1, width_typ
     plt.margins(0, 0)
     ax = plt.gca()
     ax.set_title("minimum: {0}%, maximum: {1}%, average: {2}%".format(round(min_fraction, 2), round(max_fraction, 2),
-                                                                      np.round(avg, 2)),
-                 pad=70, size=20)
+                                                                      round(avg, 2)),
+                 pad=70, size=custom_textsize)
     plt.suptitle("Fractional change ({0}_{1}z-{2}_{3}z)/{2}_{3}z".format(width_type2, depth2, width_type1, depth1),
                  fontsize=20)
 
-    ax.set_xlabel("Destination stations", fontsize=20)
-    ax.set_ylabel("Source stations", labelpad=20, fontsize=20)
+    ax.set_xlabel("Destination stations", labelpad=20, fontsize=custom_textsize)
+    ax.set_ylabel("Source stations", labelpad=20, fontsize=custom_textsize)
     ax.set_xticks(np.arange(len(codes)))
     ax.set_yticks(np.arange(len(codes)))
     ax.set_xticklabels(np.arange(1, len(codes) + 1))
     ax.set_yticklabels(np.arange(1, len(codes) + 1))
     ax.set_xticklabels(codes)
     ax.set_yticklabels(codes)
-    plt.tick_params(axis='both', which='major', labelsize=20)
+    plt.tick_params(axis='both', which='major', labelsize=custom_textsize)
 
     # Y axis labels on top
     ax.tick_params(top=True, bottom=False, labeltop=True, labelbottom=False)
@@ -78,14 +79,16 @@ def plot_change(fraction, species, codes, depth1, depth2, width_type1, width_typ
     # plt.imshow(fraction, cmap=plt.cm.Wistia)
 
     cbar = plt.colorbar(orientation='vertical')
-    cbar.set_label('Fractional change (%)', size=20)
-    cbar.ax.tick_params(labelsize=20)
+    cbar.set_label('Fractional change (%)', size=custom_textsize)
+    cbar.ax.tick_params(labelsize=custom_textsize)
     # plt.show()
     plt.savefig(
-        home_folder2 + "{4}/t{0}m/FractionalChange_z{0}{1}_z{2}{3}_{5}_limit-50-250.png".format(depth2, width_type2,
-                                                                                                  depth1,
-                                                                                                  width_type1, dataset,
-                                                                                                  species),
+        home_folder2 + "{4}/t{0}m/FractionalChange_z{0}{1}_z{2}{3}_{5}_limit-50-250_30nov2022.png".format(depth2,
+                                                                                                         width_type2,
+                                                                                                         depth1,
+                                                                                                         width_type1,
+                                                                                                         dataset,
+                                                                                                         species),
         bbox_inches='tight',
         pad_inches=0.2)
 

@@ -11,7 +11,7 @@ from sourcecode.core import adjacencygraph as ag, connectivityplots as cp
 from sourcecode.core import connectivityhelper as ch
 
 hex_res = 3
-data_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task11/'
+data_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task12/'
 
 Tara = False
 width_type = 'broad'
@@ -44,9 +44,8 @@ def subset_min_T_paths(atlantic_graph, mask_lons, mask_lats, mask_value, master_
                                       source_code, destination_code, depth)
 
 
-def compute_paths(source_code, destination_code, depth, min_accept_temp, max_accept_temp, temp_constraint_range, mask_lons,
-              mask_lats, mask_value):
-
+def compute_paths(source_code, destination_code, depth, min_accept_temp, max_accept_temp, temp_constraint_range,
+                  mask_lons, mask_lats, mask_value):
     domain_adjacency_file = 't{0}m/Annual_Binary_DomainAdjacency_z{0}_csr.npz'.format(depth)
 
     path_count = 1000
@@ -113,8 +112,8 @@ def compute_paths(source_code, destination_code, depth, min_accept_temp, max_acc
 
 def main():
     src = [1]
-    des = [2]
-    depths = [0]
+    des = [9]
+    depths = [0, 50, 100, 200, 500]
     min_t = 7.85
     max_t = 25.85
     t_range = np.NaN

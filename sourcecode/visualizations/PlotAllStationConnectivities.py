@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
-depth = 0
-
+depth = 500
+tsize = 30
 dataset = 'NoConstraints'  # 'sample_constraints' 2011_lombard_forams NoConstraints
 width_type = 'passive'
 work_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task12/'
@@ -11,7 +11,7 @@ home_folder = work_folder + 'Connectivities/{0}/t{1}m/'.format(dataset, depth)
 
 
 def plot_connectivity(species):
-    data = np.load(home_folder + '{2}/Stations_minT_connectivity_{0}z_{1}_{2}.npz'.format(depth, species, width_type),
+    data = np.load(home_folder + 'Stations_minT_connectivity_{0}z_{1}_{2}.npz'.format(depth, species, width_type),
                    allow_pickle=True)
     codes = data['codes']
     con_matrix = data['matrix']
@@ -27,13 +27,13 @@ def plot_connectivity(species):
         "Minimum Connectivity Time ({4}) between all stations at depth {0}m- {1}\n minimum={2}, maximum={3} years".
             format(depth, species, round(np.nanmin(final_matrix), 2), round(np.nanmax(final_matrix), 2), width_type),
         pad=70, fontsize=20)
-    ax.set_xlabel("Destination stations", labelpad=30, fontsize=20)
-    ax.set_ylabel("Source stations", labelpad=30, fontsize=20)
+    ax.set_xlabel("Destination stations", labelpad=30, fontsize=tsize)
+    ax.set_ylabel("Source stations", labelpad=30, fontsize=tsize)
     ax.set_xticks(np.arange(len(codes)))
     ax.set_yticks(np.arange(len(codes)))
     ax.set_xticklabels(codes)
     ax.set_yticklabels(codes)
-    plt.tick_params(axis='both', which='major', labelsize=20)
+    plt.tick_params(axis='both', which='major', labelsize=tsize)
 
     # Y axis labels on top
     ax.tick_params(top=True, bottom=False, labeltop=True, labelbottom=False)
@@ -50,10 +50,10 @@ def plot_connectivity(species):
     plt.imshow(final_matrix, cmap='inferno_r')
     cbar = plt.colorbar(orientation='vertical')
 
-    cbar.set_label('Minimum connectivity time (Years)', size=20)
-    cbar.ax.tick_params(labelsize=20)
+    cbar.set_label('Minimum connectivity time (Years)', size=tsize)
+    cbar.ax.tick_params(labelsize=tsize)
     # plt.show()
-    plt.savefig(home_folder + "Stations_minT_connectivity_z{0}_{1}_{2}.png".format(depth, species, width_type),
+    plt.savefig(home_folder + "Stations_minT_connectivity_z{0}_{1}_{2}_30nov22.png".format(depth, species, width_type),
                 bbox_inches='tight',
                 pad_inches=0.2)
 

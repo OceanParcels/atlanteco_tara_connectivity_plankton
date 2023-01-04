@@ -4,6 +4,10 @@ import matplotlib.colors as clr
 from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
 import xarray as xr
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
+
+custom_text_size = 22
 
 
 def load_mask_file(file):
@@ -59,11 +63,19 @@ def plot_paths(x, y, c, master_hex_ids, forward_path, backward_path, f_time_laps
 
 
 def plot_shortest_paths_subset(x, y, c, master_hex_ids, f_paths, b_paths, s_code, d_code, depth):
-    fig = plt.figure(dpi=120, figsize=(14, 12))
-    ax = plt.axes()
-    colormap = clr.ListedColormap(['gainsboro', 'white'])
+    fig, ax = plt.subplots(1, subplot_kw={'projection': ccrs.PlateCarree()}, dpi=300, figsize=(14, 12))
+    ax.add_feature(cfeature.LAND, color='gainsboro')
+    gl = ax.gridlines(draw_labels=True)
+    gl.xlines = False
+    gl.ylines = False
+    gl.top_labels = False
+    gl.right_labels = False
+    gl.xlabel_style = {'size': 20, 'color': 'k'}
+    gl.ylabel_style = {'size': 20, 'color': 'k'}
+    ax.set_extent([-95, 20, -78, 85])
+    # colormap = clr.ListedColormap(['gainsboro', 'white'])
     # remove the first row and first column from the glamf/gphif to access points enclosed in the center
-    ax.pcolormesh(x[0], y[0], c[0, 0, 1:, 1:], cmap=colormap)
+    # ax.pcolormesh(x[0], y[0], c[0, 0, 1:, 1:], cmap=colormap)
     print("base map ready")
     # ax.set_title('Sample of Minimum Time Paths between station {0} and {1}'.format(s_code, d_code))
     ax.set_title('Random sample of Minimum Time Paths from {0} to {1}'.format(s_code, d_code))
@@ -72,15 +84,11 @@ def plot_shortest_paths_subset(x, y, c, master_hex_ids, f_paths, b_paths, s_code
         lats, lons = masterhex_to_latlon(master_hex_ids, path)
         ax.plot(lons, lats, color=color, linestyle='solid', alpha=0.3)
         ax.scatter(lons, lats, color=color, s=0.4)
-        ax.text(lons[0], lats[0], s, bbox=dict(facecolor='white', alpha=0.7, pad=0.2, edgecolor='none'), fontsize=15)
-        ax.text(lons[-1], lats[-1], d, bbox=dict(facecolor='white', alpha=0.7, pad=0.2, edgecolor='none'), fontsize=15)
+        ax.text(lons[0], lats[0], s, bbox=dict(facecolor='white', alpha=0.7, pad=0.2, edgecolor='none'),
+                fontsize=custom_text_size)
+        ax.text(lons[-1], lats[-1], d, bbox=dict(facecolor='white', alpha=0.7, pad=0.2, edgecolor='none'),
+                fontsize=custom_text_size)
 
-    def get_cmap(n, name='hsv'):
-        '''Returns a function that maps each index in 0, 1, ..., n-1 to a distinct
-        RGB color; the keyword argument name must be a standard mpl colormap name.'''
-        return plt.cm.get_cmap(name, n)
-
-    # colors = get_cmap(len(paths))
     # [plot_path(paths[i], colors(i)) for i in range(len(paths))]
     [plot_path(f_paths[i], 'red', s_code, d_code) for i in range(len(f_paths))]
     [plot_path(b_paths[i], 'blue', d_code, s_code) for i in range(len(b_paths))]
@@ -95,15 +103,13 @@ def plot_shortest_paths_subset(x, y, c, master_hex_ids, f_paths, b_paths, s_code
 
     # place a text box in upper left in axes coords
     # 0.58 for 0m, 0.56 for 50m, 0.55 for 100m,
-    ax.text(0.56, 0.085, textstr, transform=ax.transAxes, fontsize=18,
+    ax.text(0.08, 0.085, textstr, transform=ax.transAxes, fontsize=custom_text_size,
             verticalalignment='center', bbox=props)
-    ax.set_xlim(-95, 20)
-    ax.set_ylim(-78, 85)
 
     # plt.show()
     plt.savefig(
-        '/Users/dmanral/Desktop/Analysis/TARA/Task11/PairPlots/{0}_{1}_z{2}_passive.png'.format(s_code, d_code,
-                                                                                                  depth),
+        '/Users/dmanral/Desktop/Analysis/TARA/Task12/PairPlots/{0}_{1}_z{2}_passive.png'.format(s_code, d_code,
+                                                                                                        depth),
         bbox_inches='tight',
         pad_inches=0.2)
 

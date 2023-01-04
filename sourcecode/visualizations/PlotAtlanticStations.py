@@ -5,8 +5,10 @@ import xarray as xr
 import matplotlib.colors as clr
 import h3
 from matplotlib.lines import Line2D
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 
-home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task11/'
+home_folder = '/Users/dmanral/Desktop/Analysis/TARA/Task12/'
 stations = pd.read_csv(home_folder + 'AtlanticStations.csv', header=0)
 lon = stations['Longitude']
 lat = stations['Latitude']
@@ -22,13 +24,22 @@ y = mask_ds['gphif']
 
 # get the mask values of the corner points
 c = mask_ds['tmask'][:]
-
+custom_size = 10
 fig = plt.figure(figsize=(8, 6), dpi=500)
-ax = plt.axes()
+# ax = plt.axes()
+ax = plt.axes(projection=ccrs.PlateCarree())
+# ax.add_feature(cfeature.LAND, color='gainsboro')
+# ax.add_feature(cfeature.COASTLINE, linewidth=0.1)
+gl = ax.gridlines(draw_labels=True)
+gl.xlines = False
+gl.ylines = False
+gl.top_labels = False
+gl.right_labels = False
+gl.xlabel_style = {'size': custom_size, 'color': 'k'}
+gl.ylabel_style = {'size': custom_size, 'color': 'k'}
+
 colormap = clr.ListedColormap(['whitesmoke', 'lightskyblue'])
 plt.tick_params(axis='both', which='major', labelsize=10)
-ax.set_xlabel("Longitude(°)")
-ax.set_ylabel("Latitude(°)")
 # remove the first row and first column from the glamf/gphif to access points enclosed in the center
 ax.pcolormesh(x[0], y[0], c[0, 0, 1:, 1:], cmap=colormap, label='Ocean model domain')
 

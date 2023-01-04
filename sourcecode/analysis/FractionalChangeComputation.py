@@ -23,7 +23,7 @@ min_fraction = np.empty(len(species_info))
 
 for index, entry in species_info.iterrows():
     data_new = np.load(
-        home_folder + '{2}/Stations_minT_connectivity_{0}z_{1}_{2}.npz'.format(depth, entry['Species'], width_type),
+        home_folder + 'Stations_minT_connectivity_{0}z_{1}_{2}.npz'.format(depth, entry['Species'], width_type),
         allow_pickle=True)
 
     new_codes = data_new['codes']
@@ -38,9 +38,9 @@ for index, entry in species_info.iterrows():
     mean_fraction[index] = np.round(np.nanmean(fraction) * 100, 2)
     min_fraction[index] = np.round(np.nanmin(fraction) * 100, 2)
     max_fraction[index] = np.round(np.nanmax(fraction) * 100, 2)
-    print(max_time[index], mean_fraction[index],min_fraction[index], max_fraction[index])
+    print(max_time[index], mean_fraction[index], min_fraction[index], max_fraction[index])
 
-species_info['MaxTimeMonths'] = max_time
+species_info['MaxTime-Years'] = np.round(max_time / 12, 2)
 species_info['MeanFractionalChange'] = mean_fraction
 species_info['MinFractionalChange'] = min_fraction
 species_info['MaxFractionalChange'] = max_fraction
